@@ -100,7 +100,15 @@ Paste `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` into `.env`, then `npm in
   - `public.skill_set_master` (`skill_set_id`, `skill_set_name`, `short_name`)
   - `public.proficiency_levels` (`proficiency_level_id`, `proficiency_name`, `proficiency_code`)
   - `public.skill_set_topics` (`skill_set_id`, `level_number`, `topics`)
-- **Resilient Fallback**: If `.env` is unpopulated or network access is offline, the client automatically defaults to verified seed data with informative console indicators, ensuring seamless evaluation.
+- **Strict Production Database Verification**: Silent mock data fallbacks in production have been completely removed. The UI renders authentic database records, reports genuine database connection errors, or displays explicit empty states.
+- **Supabase Row-Level Security (RLS)**: If you enable RLS on `company_json` and the 4 skill tables, ensure you execute an anonymous SELECT policy in Supabase SQL editor:
+  ```sql
+  CREATE POLICY "Allow anonymous read access" ON public.company_json FOR SELECT USING (true);
+  CREATE POLICY "Allow anonymous read access" ON public.company_skill_levels FOR SELECT USING (true);
+  CREATE POLICY "Allow anonymous read access" ON public.skill_set_master FOR SELECT USING (true);
+  CREATE POLICY "Allow anonymous read access" ON public.proficiency_levels FOR SELECT USING (true);
+  CREATE POLICY "Allow anonymous read access" ON public.skill_set_topics FOR SELECT USING (true);
+  ```
 
 ---
 

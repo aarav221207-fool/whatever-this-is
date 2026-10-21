@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   Sparkles,
   ChevronDown,
@@ -11,22 +12,39 @@ import {
   CircleDot,
   RefreshCw,
   AlertTriangle,
+  ArrowLeft,
+  FileQuestion,
 } from "lucide-react";
 import { useCompany } from "../context/CompanyContext";
 import { CompanyLogo } from "../components/common/CompanyLogo";
-import { useCompanySkills } from "../lib/companyApi";
+import { useCompanySkills, useCompanies } from "../lib/companyApi";
 import type { DashboardSkill } from "../lib/companyData";
 import { cn } from "../lib/utils";
 
 export const SkillIntelligence: React.FC = () => {
-  const { selectedCompanyId, selectedSummary } = useCompany();
+  const [searchParams] = useSearchParams();
+  const urlId = searchParams.get("id") ? Number(searchParams.get("id")) : null;
+
+  const { selectedCompanyId, selectedSummary, setSelectedCompany } = useCompany();
+  const { data: allCompanies = [] } = useCompanies();
+
+  // Active company ID: prioritize URL parameter, then context
+  const activeId = urlId && urlId > 0 ? urlId : selectedCompanyId;
+
+  // Auto-select first company from database if none is selected yet
+  useEffect(() => {
+    if (!activeId && allCompanies.length > 0) {
+      setSelectedCompany(allCompanies[0]);
+    }
+  }, [activeId, allCompanies, setSelectedCompany]);
+
   const {
     data: skillsData,
     isLoading,
     isError,
     error,
     refetch,
-  } = useCompanySkills(selectedCompanyId);
+  } = useCompanySkills(activeId);
 
   const [expandedSkills, setExpandedSkills] = useState<Record<number, boolean>>({});
 
@@ -114,44 +132,56 @@ export const SkillIntelligence: React.FC = () => {
                 </h1>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                Target competency matrix & Bloom's cognitive taxonomy benchmarks for campus placement
+                Target competency matrix & Bloom's cognitive taxonomy benchmarks from database
               </p>
             </div>
           </div>
 
           {/* Quick controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={expandAll}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-            >
-              Expand All Roadmaps
-            </button>
-            <button
-              onClick={collapseAll}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-            >
-              Collapse All
-            </button>
-          </div>
+          {selectedSkills.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={expandAll}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              >
+                Expand All Roadmaps
+              </button>
+              <button
+                onClick={collapseAll}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              >
+                Collapse All
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Error State */}
         {isError && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-red-800 text-xs">
-              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-              <span>Failed to fetch skill requirements for {companyName}. Check your network or Supabase settings.</span>
+          <div className="p-5 rounded-xl bg-red-50 border border-red-200">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-red-900">Database Query Failed</h3>
+                  <p className="text-xs text-red-800 mt-1">
+                    {error instanceof Error ? error.message : "Failed to load skill requirements from database."}
+                  </p>
+                  <p className="text-[11px] text-red-700/80 mt-1.5">
+                    Verify that tables <code>company_skill_levels</code>, <code>skill_set_master</code>, <code>proficiency_levels</code>, and <code>skill_set_topics</code> exist and have RLS SELECT enabled.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shrink-0 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry Connection</span>
+              </button>
             </div>
-            <button
-              onClick={() => refetch()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shrink-0 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Retry</span>
-            </button>
           </div>
         )}
 
@@ -232,8 +262,28 @@ export const SkillIntelligence: React.FC = () => {
           </div>
         )}
 
+        {/* Empty State: Zero skill records in database */}
+        {!isLoading && !isError && selectedSkills.length === 0 && (
+          <div className="text-center py-16 px-4 bg-slate-50/60 border border-dashed border-slate-200 rounded-2xl max-w-lg mx-auto my-8">
+            <FileQuestion className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-slate-800 mb-1">
+              No Skill Benchmarks Registered
+            </h3>
+            <p className="text-xs text-slate-500 mb-6 max-w-sm mx-auto">
+              No skill records were returned from <code>public.company_skill_levels</code> for company ID {activeId || "unknown"}.
+            </p>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Browse All Companies</span>
+            </Link>
+          </div>
+        )}
+
         {/* Skill Cards Sorted Descending */}
-        {!isLoading && (
+        {!isLoading && !isError && selectedSkills.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">
@@ -327,7 +377,11 @@ export const SkillIntelligence: React.FC = () => {
                         )}
                       </button>
                       <span className="text-[11px] text-slate-400">
-                        {isExpanded ? `${topics.length} milestone topics` : "Click to view milestones"}
+                        {isExpanded
+                          ? `${topics.length} milestone topics`
+                          : topics.length > 0
+                          ? `${topics.length} topics registered`
+                          : "Click to view milestones"}
                       </span>
                     </div>
                   </div>
@@ -337,12 +391,12 @@ export const SkillIntelligence: React.FC = () => {
                     <div className="bg-slate-50/70 border-t border-slate-200 px-4 sm:px-6 py-4">
                       <div className="max-w-4xl mx-auto space-y-2">
                         <div className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
-                          Curriculum & Topic Milestones (Level 1 to 10)
+                          Database Curriculum & Topic Milestones (Level 1 to 10)
                         </div>
 
                         {topics.length === 0 ? (
                           <p className="text-xs text-slate-400 italic py-2">
-                            No milestone topics registered for this skill ladder.
+                            No milestone topics registered in <code>skill_set_topics</code> for this skill set.
                           </p>
                         ) : (
                           topics.map((t) => {

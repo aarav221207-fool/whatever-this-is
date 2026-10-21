@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Globe, Linkedin, ExternalLink, AlertTriangle, RefreshCw } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Globe, Linkedin, ExternalLink, AlertTriangle, RefreshCw, ArrowLeft, Building2 } from "lucide-react";
 import { useCompany } from "../context/CompanyContext";
 import { CompanyLogo } from "../components/common/CompanyLogo";
 import { FieldRow } from "../components/common/FieldRow";
@@ -7,18 +8,33 @@ import {
   buildIntelligenceSections,
   type IntelligenceSection,
 } from "../data/intelligenceData";
-import { useCompanyProfile } from "../lib/companyApi";
+import { useCompanyProfile, useCompanies } from "../lib/companyApi";
 import { cn } from "../lib/utils";
 
 export const CompanyIntelligence: React.FC = () => {
-  const { selectedCompanyId, selectedSummary } = useCompany();
+  const [searchParams] = useSearchParams();
+  const urlId = searchParams.get("id") ? Number(searchParams.get("id")) : null;
+
+  const { selectedCompanyId, selectedSummary, setSelectedCompany } = useCompany();
+  const { data: allCompanies = [] } = useCompanies();
+
+  // Determine active company ID: prioritize URL parameter, then context
+  const activeId = urlId && urlId > 0 ? urlId : selectedCompanyId;
+
+  // If no company is selected yet, but real database companies are available, auto-select the first one
+  useEffect(() => {
+    if (!activeId && allCompanies.length > 0) {
+      setSelectedCompany(allCompanies[0]);
+    }
+  }, [activeId, allCompanies, setSelectedCompany]);
+
   const {
     data: selectedProfile,
     isLoading,
     isError,
     error,
     refetch,
-  } = useCompanyProfile(selectedCompanyId);
+  } = useCompanyProfile(activeId);
 
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
   const isScrollingRef = useRef<boolean>(false);
@@ -190,18 +206,28 @@ export const CompanyIntelligence: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Error State */}
         {isError && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-red-800 text-xs">
-              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-              <span>Failed to fetch profile intelligence for {companyName}. Check your network or Supabase settings.</span>
+          <div className="p-5 rounded-xl bg-red-50 border border-red-200">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-red-900">Database Query Failed</h3>
+                  <p className="text-xs text-red-800 mt-1">
+                    {error instanceof Error ? error.message : "Failed to load company profile from Supabase."}
+                  </p>
+                  <p className="text-[11px] text-red-700/80 mt-1.5">
+                    Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are valid, and table <code>company_json</code> permits SELECT for anonymous users.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shrink-0 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry Connection</span>
+              </button>
             </div>
-            <button
-              onClick={() => refetch()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shrink-0 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Retry</span>
-            </button>
           </div>
         )}
 
@@ -221,8 +247,30 @@ export const CompanyIntelligence: React.FC = () => {
           </div>
         )}
 
+        {/* Empty State: Profile not found */}
+        {!isLoading && !isError && !selectedProfile && (
+          <div className="text-center py-16 px-4 bg-slate-50/60 border border-dashed border-slate-200 rounded-2xl max-w-lg mx-auto my-8">
+            <Building2 className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-slate-800 mb-1">
+              Company Profile Not Found
+            </h3>
+            <p className="text-xs text-slate-500 mb-6 max-w-sm mx-auto">
+              No profile record was found in table <code>public.company_json</code> for company ID {activeId || "unknown"}.
+            </p>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Browse All Companies</span>
+            </Link>
+          </div>
+        )}
+
         {/* Populated 22 Intelligence Sections */}
         {!isLoading &&
+          !isError &&
+          selectedProfile &&
           sections.map((section, idx) => {
             const Icon = section.icon;
 

@@ -8,43 +8,37 @@ import {
   type CompanyProfile,
   type DashboardSkill,
 } from "./companyData";
-import { SEED_COMPANIES } from "../data/seedCompanies";
-import { SKILL_TOPICS_MAP, type SkillTopic } from "../data/skillTopics";
+import type { SkillTopic } from "../data/skillTopics";
 
 // ==========================================
 // 1. Hook: useCompanies
-// Queries SELECT company_id, short_json FROM company_json
+// Reads real database records from public.company_json
+// Never produces silent fake fallback data in production.
 // ==========================================
 export function useCompanies() {
   return useQuery<CompanySummary[]>({
     queryKey: ["companies"],
     queryFn: async () => {
       if (!isSupabaseConfigured) {
-        console.warn(
-          "[companyApi] Supabase credentials not set in .env. Using fallback seed companies data."
-        );
-        return SEED_COMPANIES.map((c) =>
-          normalizeCompanySummary(c.short_json, c.company_id)
+        throw new Error(
+          "Database connection is unconfigured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing from your environment variables. In Netlify, add them under Site Configuration > Environment Variables and trigger a rebuild."
         );
       }
 
-      // Read ONLY from public.company_json
-      const { data, error } = await supabase
+      // Query ONLY from public.company_json
+      const { data, error, status } = await supabase
         .from("company_json")
         .select("company_id, short_json");
 
       if (error) {
-        console.error("[companyApi] Error fetching companies from company_json:", error);
-        // Fallback to seed data on error so UI remains resilient
-        return SEED_COMPANIES.map((c) =>
-          normalizeCompanySummary(c.short_json, c.company_id)
+        throw new Error(
+          `Database query failed on 'company_json' (HTTP ${status || "err"}): ${error.message}. Hint: Ensure table permissions or Row Level Security (RLS) policies allow SELECT for role 'anon'.`
         );
       }
 
       if (!data || data.length === 0) {
-        return SEED_COMPANIES.map((c) =>
-          normalizeCompanySummary(c.short_json, c.company_id)
-        );
+        // Return genuine empty list - NO silent mock fallbacks
+        return [];
       }
 
       return data.map((row: any) =>
@@ -56,7 +50,8 @@ export function useCompanies() {
 
 // ==========================================
 // 2. Hook: useCompanyProfile
-// Queries SELECT company_id, short_json, full_json FROM company_json WHERE company_id = id
+// Queries SELECT company_id, short_json, full_json FROM company_json WHERE company_id = :id
+// Never substitutes hardcoded fake profiles.
 // ==========================================
 export function useCompanyProfile(id: number | null | undefined) {
   return useQuery<CompanyProfile | null>({
@@ -66,32 +61,27 @@ export function useCompanyProfile(id: number | null | undefined) {
       if (!id) return null;
 
       if (!isSupabaseConfigured) {
-        console.warn(
-          "[companyApi] Supabase credentials not set in .env. Using fallback seed company profile."
+        throw new Error(
+          "Database connection is unconfigured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing."
         );
-        const match = SEED_COMPANIES.find((c) => c.company_id === id) || SEED_COMPANIES[0];
-        return normalizeCompanyProfile(match.full_json, match.short_json, match.company_id);
       }
 
       // Read ONLY from public.company_json
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from("company_json")
         .select("company_id, short_json, full_json")
         .eq("company_id", id)
         .maybeSingle();
 
       if (error) {
-        console.error(
-          `[companyApi] Error fetching profile for company_id ${id} from company_json:`,
-          error
+        throw new Error(
+          `Failed to load profile for company ID ${id} (HTTP ${status || "err"}): ${error.message}`
         );
-        const match = SEED_COMPANIES.find((c) => c.company_id === id) || SEED_COMPANIES[0];
-        return normalizeCompanyProfile(match.full_json, match.short_json, match.company_id);
       }
 
       if (!data) {
-        const match = SEED_COMPANIES.find((c) => c.company_id === id) || SEED_COMPANIES[0];
-        return normalizeCompanyProfile(match.full_json, match.short_json, match.company_id);
+        // Honest null - company does not exist in the database
+        return null;
       }
 
       return normalizeCompanyProfile(data.full_json, data.short_json, data.company_id);
@@ -101,11 +91,12 @@ export function useCompanyProfile(id: number | null | undefined) {
 
 // ==========================================
 // 3. Hook: useCompanySkills
-// Queries 4 tables only:
-// - company_skill_levels (company_id, skill_set_id, required_level, required_proficiency_level_id)
-// - skill_set_master (skill_set_id, skill_set_name, short_name)
-// - proficiency_levels (proficiency_level_id, proficiency_name, proficiency_code)
-// - skill_set_topics (skill_set_id, level_number, topics)
+// Queries ONLY the 4 skill tables:
+// - company_skill_levels
+// - skill_set_master
+// - proficiency_levels
+// - skill_set_topics
+// Never substitutes hardcoded fake skill ladders.
 // ==========================================
 export interface CompanySkillsData {
   skills: DashboardSkill[];
@@ -118,125 +109,108 @@ export function useCompanySkills(id: number | null | undefined) {
     enabled: typeof id === "number" && id > 0,
     queryFn: async () => {
       if (!id) {
-        return {
-          skills: normalizeDashboardSkills(SEED_COMPANIES[0].skill_levels),
-          topicsMap: SKILL_TOPICS_MAP,
-        };
+        return { skills: [], topicsMap: {} };
       }
 
       if (!isSupabaseConfigured) {
-        console.warn(
-          "[companyApi] Supabase credentials not set in .env. Using fallback seed skills data."
+        throw new Error(
+          "Database connection is unconfigured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing."
         );
-        const match = SEED_COMPANIES.find((c) => c.company_id === id) || SEED_COMPANIES[0];
-        return {
-          skills: normalizeDashboardSkills(match.skill_levels),
-          topicsMap: SKILL_TOPICS_MAP,
-        };
       }
 
-      try {
-        // Table 1: company_skill_levels
-        const { data: skillLevelsData, error: skillLevelsError } = await supabase
-          .from("company_skill_levels")
-          .select("company_id, skill_set_id, required_level, required_proficiency_level_id")
-          .eq("company_id", id);
+      // 1. Query company_skill_levels
+      const { data: skillLevelsData, error: skillLevelsError, status } = await supabase
+        .from("company_skill_levels")
+        .select("company_id, skill_set_id, required_level, required_proficiency_level_id")
+        .eq("company_id", id);
 
-        if (skillLevelsError || !skillLevelsData || skillLevelsData.length === 0) {
-          console.warn(
-            `[companyApi] company_skill_levels query returned empty or error for company_id ${id}. Falling back to seed skills.`,
-            skillLevelsError
-          );
-          const match = SEED_COMPANIES.find((c) => c.company_id === id) || SEED_COMPANIES[0];
-          return {
-            skills: normalizeDashboardSkills(match.skill_levels),
-            topicsMap: SKILL_TOPICS_MAP,
-          };
-        }
+      if (skillLevelsError) {
+        throw new Error(
+          `Failed to query 'company_skill_levels' for company ID ${id} (HTTP ${status || "err"}): ${skillLevelsError.message}`
+        );
+      }
 
-        const skillSetIds = skillLevelsData.map((s: any) => s.skill_set_id);
+      if (!skillLevelsData || skillLevelsData.length === 0) {
+        // Return genuine empty skill matrix
+        return { skills: [], topicsMap: {} };
+      }
 
-        // Table 2: skill_set_master
-        const { data: mastersData } = await supabase
+      const skillSetIds = skillLevelsData.map((s: any) => s.skill_set_id);
+
+      // 2. Query auxiliary tables in parallel
+      const [mastersRes, profRes, topicsRes] = await Promise.all([
+        supabase
           .from("skill_set_master")
           .select("skill_set_id, skill_set_name, short_name")
-          .in("skill_set_id", skillSetIds);
-
-        const masterMap = new Map<number, { skill_set_name: string; short_name: string }>();
-        (mastersData || []).forEach((m: any) => {
-          masterMap.set(m.skill_set_id, m);
-        });
-
-        // Table 3: proficiency_levels
-        const { data: proficienciesData } = await supabase
+          .in("skill_set_id", skillSetIds),
+        supabase
           .from("proficiency_levels")
-          .select("proficiency_level_id, proficiency_name, proficiency_code");
-
-        const profMap = new Map<number, string>();
-        (proficienciesData || []).forEach((p: any) => {
-          profMap.set(p.proficiency_level_id, p.proficiency_name);
-        });
-
-        // Table 4: skill_set_topics
-        const { data: topicsData } = await supabase
+          .select("proficiency_level_id, proficiency_name, proficiency_code"),
+        supabase
           .from("skill_set_topics")
           .select("skill_set_id, level_number, topics")
           .in("skill_set_id", skillSetIds)
-          .order("level_number", { ascending: true });
+          .order("level_number", { ascending: true }),
+      ]);
 
-        // Assemble topicsMap
-        const assembledTopicsMap: Record<number, SkillTopic[]> = {};
-        skillSetIds.forEach((sid: number) => {
-          assembledTopicsMap[sid] = [];
-        });
-
-        (topicsData || []).forEach((t: any) => {
-          const sid = t.skill_set_id;
-          if (!assembledTopicsMap[sid]) {
-            assembledTopicsMap[sid] = [];
-          }
-          assembledTopicsMap[sid].push({
-            level_number: Number(t.level_number) || 1,
-            topic: String(t.topics || t.topic || `Level ${t.level_number} Milestone`),
-          });
-        });
-
-        // For any skill set with missing topics from DB, fall back to seed topic definitions
-        skillSetIds.forEach((sid: number) => {
-          if (!assembledTopicsMap[sid] || assembledTopicsMap[sid].length === 0) {
-            if (SKILL_TOPICS_MAP[sid]) {
-              assembledTopicsMap[sid] = SKILL_TOPICS_MAP[sid];
-            }
-          }
-        });
-
-        // Assemble skill rows for normalizeDashboardSkills
-        const assembledSkills = skillLevelsData.map((row: any) => {
-          const master = masterMap.get(row.skill_set_id);
-          const profName = profMap.get(row.required_proficiency_level_id) || "Proficient";
-
-          return {
-            skill_set_id: row.skill_set_id,
-            skill_set_name: master ? master.skill_set_name : `Skill ${row.skill_set_id}`,
-            required_level: row.required_level,
-            required_proficiency: profName,
-          };
-        });
-
-        const normalizedSkills = normalizeDashboardSkills(assembledSkills);
-
-        return {
-          skills: normalizedSkills,
-          topicsMap: assembledTopicsMap,
-        };
-      } catch (err) {
-        console.error("[companyApi] Error processing company skills query:", err);
-        const match = SEED_COMPANIES.find((c) => c.company_id === id) || SEED_COMPANIES[0];
-        return {
-          skills: normalizeDashboardSkills(match.skill_levels),
-          topicsMap: SKILL_TOPICS_MAP,
-        };
+      if (mastersRes.error) {
+        console.warn("[companyApi] Warning fetching skill_set_master:", mastersRes.error);
       }
+      if (profRes.error) {
+        console.warn("[companyApi] Warning fetching proficiency_levels:", profRes.error);
+      }
+      if (topicsRes.error) {
+        console.warn("[companyApi] Warning fetching skill_set_topics:", topicsRes.error);
+      }
+
+      // Build master name map
+      const masterMap = new Map<number, { skill_set_name: string; short_name: string }>();
+      (mastersRes.data || []).forEach((m: any) => {
+        masterMap.set(m.skill_set_id, m);
+      });
+
+      // Build proficiency name map
+      const profMap = new Map<number, string>();
+      (profRes.data || []).forEach((p: any) => {
+        profMap.set(p.proficiency_level_id, p.proficiency_name);
+      });
+
+      // Build topicsMap strictly from database rows
+      const assembledTopicsMap: Record<number, SkillTopic[]> = {};
+      skillSetIds.forEach((sid: number) => {
+        assembledTopicsMap[sid] = [];
+      });
+
+      (topicsRes.data || []).forEach((t: any) => {
+        const sid = t.skill_set_id;
+        if (!assembledTopicsMap[sid]) {
+          assembledTopicsMap[sid] = [];
+        }
+        assembledTopicsMap[sid].push({
+          level_number: Number(t.level_number) || 1,
+          topic: String(t.topics || t.topic || `Level ${t.level_number}`),
+        });
+      });
+
+      // Assemble skill rows for normalizeDashboardSkills
+      const assembledSkills = skillLevelsData.map((row: any) => {
+        const master = masterMap.get(row.skill_set_id);
+        const profName = profMap.get(row.required_proficiency_level_id) || "Proficient";
+
+        return {
+          skill_set_id: row.skill_set_id,
+          skill_set_name: master ? master.skill_set_name : `Skill ${row.skill_set_id}`,
+          required_level: row.required_level,
+          required_proficiency: profName,
+        };
+      });
+
+      const normalizedSkills = normalizeDashboardSkills(assembledSkills);
+
+      return {
+        skills: normalizedSkills,
+        topicsMap: assembledTopicsMap,
+      };
     },
   });
 }

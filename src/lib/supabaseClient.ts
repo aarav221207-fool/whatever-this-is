@@ -1,23 +1,38 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Read from standard Vite environment variables, supporting common deployment aliases
+const rawUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.VITE_PUBLIC_SUPABASE_URL ||
+  "";
+
+const rawAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_KEY ||
+  import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "";
+
+export const supabaseUrl = rawUrl.trim();
+export const supabaseAnonKey = rawAnonKey.trim();
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
     supabaseAnonKey &&
-    supabaseUrl.trim() !== "" &&
-    supabaseAnonKey.trim() !== ""
+    supabaseUrl !== "" &&
+    supabaseAnonKey !== "" &&
+    !supabaseUrl.includes("placeholder") &&
+    (supabaseUrl.startsWith("http://") || supabaseUrl.startsWith("https://"))
 );
 
 if (!isSupabaseConfigured) {
   console.error(
-    "[Supabase] Missing Supabase configuration: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are not set in .env. Please paste your Supabase URL and anon key into .env to fetch live data."
+    "[Supabase Client] Critical: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid in the build environment. Database queries will report this error in the UI. In Netlify, set these under Site Configuration > Environment Variables and redeploy."
   );
 }
 
-// Fallback to dummy endpoint so createClient does not throw on module initialization
+// Export client instance; if not configured, calls will cleanly return an error payload
 export const supabase: SupabaseClient = createClient(
-  supabaseUrl && supabaseUrl.trim() !== "" ? supabaseUrl : "https://placeholder.supabase.co",
-  supabaseAnonKey && supabaseAnonKey.trim() !== "" ? supabaseAnonKey : "placeholder-key"
+  isSupabaseConfigured ? supabaseUrl : "https://unconfigured-project.supabase.co",
+  isSupabaseConfigured ? supabaseAnonKey : "unconfigured-key"
 );

@@ -98,7 +98,14 @@ describe("Smoke Test Suite - JSS University Noida Placement Hub", () => {
     const { supabase, isSupabaseConfigured } = await import("../lib/supabaseClient");
     expect(supabase).toBeDefined();
     expect(typeof supabase.from).toBe("function");
-    // With empty placeholders in .env, isSupabaseConfigured should safely be false without crashing
     expect(typeof isSupabaseConfigured).toBe("boolean");
+  });
+
+  it("handles stringified JSON in asRecord helper without loss of data", async () => {
+    const { asRecord } = await import("../lib/companyData");
+    const jsonStr = JSON.stringify({ name: "Real Company", yoy_growth_rate: "12%" });
+    const record = asRecord(jsonStr);
+    expect(record.name).toBe("Real Company");
+    expect(record.yoy_growth_rate).toBe("12%");
   });
 });

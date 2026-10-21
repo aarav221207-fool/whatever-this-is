@@ -216,17 +216,31 @@ export const Index: React.FC = () => {
 
         {/* Error State */}
         {isError && (
-          <div className="mb-8 p-4 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-red-800 text-xs">
-              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-              <span>Failed to fetch live company listings. Please check network connection or Supabase settings.</span>
+          <div className="mb-8 p-5 rounded-xl bg-red-50 border border-red-200">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-red-900">Database Connection Failed</h3>
+                  <p className="text-xs text-red-800 mt-1">
+                    {error instanceof Error ? error.message : "Failed to load company records from database."}
+                  </p>
+                  <p className="text-[11px] text-red-700/80 mt-2">
+                    Resolution Checklist for Netlify:
+                    <br />• Verify <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> are set in Netlify Site Configuration &gt; Environment Variables.
+                    <br />• Trigger a fresh redeploy (Vite bundles environment variables at build time).
+                    <br />• Verify Supabase table <strong>company_json</strong> exists and RLS allows anonymous SELECT queries.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => refetch()}
+                className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shrink-0 transition-colors self-start sm:self-auto flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry Connection</span>
+              </button>
             </div>
-            <button
-              onClick={() => refetch()}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shrink-0 transition-colors"
-            >
-              Retry
-            </button>
           </div>
         )}
 
@@ -255,7 +269,7 @@ export const Index: React.FC = () => {
         )}
 
         {/* Populated Company Grid */}
-        {!isLoading && filteredCompanies.length > 0 && (
+        {!isLoading && !isError && filteredCompanies.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {filteredCompanies.map((company) => (
               <CompanyCard key={company.id} company={company} />
@@ -263,8 +277,30 @@ export const Index: React.FC = () => {
           </div>
         )}
 
-        {/* Empty State with Reset CTA */}
-        {!isLoading && filteredCompanies.length === 0 && (
+        {/* Empty State: Zero database rows returned */}
+        {!isLoading && !isError && allSummaries.length === 0 && (
+          <div className="text-center py-16 px-4 bg-slate-50/60 border border-dashed border-slate-200 rounded-2xl max-w-lg mx-auto my-8">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-400">
+              <Building className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">
+              No Company Records in Database
+            </h3>
+            <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto">
+              The database query succeeded, but the table <code>public.company_json</code> returned 0 records. If records exist, verify that your Row Level Security (RLS) policies permit public SELECT.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Check Again</span>
+            </button>
+          </div>
+        )}
+
+        {/* Filter Empty State: Database has rows, but search term filtered them out */}
+        {!isLoading && !isError && allSummaries.length > 0 && filteredCompanies.length === 0 && (
           <div className="text-center py-16 px-4 bg-slate-50/60 border border-dashed border-slate-200 rounded-2xl max-w-lg mx-auto my-8">
             <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-400">
               <Building className="w-6 h-6" />
@@ -273,7 +309,7 @@ export const Index: React.FC = () => {
               No matching companies found
             </h3>
             <p className="text-xs text-slate-500 mb-6 max-w-sm mx-auto">
-              We couldn't find any companies matching your search criteria. Try modifying your keywords or resetting filters.
+              No records in the database match your search query or filter. Try modifying your search keywords.
             </p>
             <button
               onClick={handleReset}

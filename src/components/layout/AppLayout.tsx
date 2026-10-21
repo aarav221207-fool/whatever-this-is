@@ -1,20 +1,29 @@
-import React, { useState } from "react";
-import { Outlet, Navigate, useLocation, Link } from "react-router-dom";
-import { Menu, ChevronRight, PanelLeftClose, PanelLeft, ExternalLink } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation, Link } from "react-router-dom";
+import { Menu, ChevronRight, PanelLeftClose, PanelLeft } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
 import { useCompany } from "../../context/CompanyContext";
+import { useCompanies } from "../../lib/companyApi";
 import { CompanyLogo } from "../common/CompanyLogo";
 
 export const AppLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
-  const { selectedSummary, isLoaded } = useCompany();
+  const { selectedSummary, selectedCompanyId, setSelectedCompany } = useCompany();
+  const { data: allCompanies = [] } = useCompanies();
   const location = useLocation();
 
-  // If initial load completed and no company is selected, redirect to "/"
-  if (isLoaded && !selectedSummary) {
-    return <Navigate to="/" replace />;
-  }
+  // If no company is selected yet in context, but database companies are loaded, auto-select the first
+  useEffect(() => {
+    if (!selectedCompanyId && allCompanies.length > 0) {
+      setSelectedCompany(allCompanies[0]);
+    } else if (selectedCompanyId && (!selectedSummary || selectedSummary.id !== selectedCompanyId) && allCompanies.length > 0) {
+      const match = allCompanies.find((c) => c.id === selectedCompanyId);
+      if (match) {
+        setSelectedCompany(match);
+      }
+    }
+  }, [selectedCompanyId, selectedSummary, allCompanies, setSelectedCompany]);
 
   // Determine current active page label
   const isSkills = location.pathname.includes("/skills");

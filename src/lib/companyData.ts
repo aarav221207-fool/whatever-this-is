@@ -237,6 +237,16 @@ export function asRecord(val: any): Record<string, any> {
   if (val && typeof val === "object" && !Array.isArray(val)) {
     return val;
   }
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // not JSON string
+    }
+  }
   return {};
 }
 
