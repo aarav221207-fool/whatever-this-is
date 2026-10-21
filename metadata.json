@@ -1,0 +1,6 @@
+{
+  "name": "JSS University Noida Companies Research & Placement Analytics Portal",
+  "description": "Comprehensive placement intelligence and company research portal for JSS University Noida campus recruitment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
