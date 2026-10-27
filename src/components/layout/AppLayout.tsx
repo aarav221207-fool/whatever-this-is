@@ -17,7 +17,11 @@ export const AppLayout: React.FC = () => {
   useEffect(() => {
     if (!selectedCompanyId && allCompanies.length > 0) {
       setSelectedCompany(allCompanies[0]);
-    } else if (selectedCompanyId && (!selectedSummary || selectedSummary.id !== selectedCompanyId) && allCompanies.length > 0) {
+    } else if (
+      selectedCompanyId &&
+      (!selectedSummary || selectedSummary.id !== selectedCompanyId) &&
+      allCompanies.length > 0
+    ) {
       const match = allCompanies.find((c) => c.id === selectedCompanyId);
       if (match) {
         setSelectedCompany(match);
@@ -26,8 +30,24 @@ export const AppLayout: React.FC = () => {
   }, [selectedCompanyId, selectedSummary, allCompanies, setSelectedCompany]);
 
   // Determine current active page label
-  const isSkills = location.pathname.includes("/skills");
-  const pageTitle = isSkills ? "Skill Intelligence" : "Company Intelligence";
+  const getPageTitle = (pathname: string): string => {
+    if (pathname.includes("/jd-analytics")) return "Role 1: JD Analytics";
+    if (pathname.includes("/resume-parser")) return "Role 2: Resume Parser";
+    if (pathname.includes("/profile-builder")) return "Role 3: Profile Builder";
+    if (pathname.includes("/talent-check")) return "Role 4: Talent Check";
+    if (pathname.includes("/skill-matching")) return "Role 5: Skill Matcher";
+    if (pathname.includes("/skills")) return "Skill Intelligence";
+    if (pathname.includes("/intelligence")) return "Company Intelligence";
+    return "Placement Intelligence";
+  };
+
+  const pageTitle = getPageTitle(location.pathname);
+  const isRadixRoute =
+    location.pathname.includes("/jd-analytics") ||
+    location.pathname.includes("/resume-parser") ||
+    location.pathname.includes("/profile-builder") ||
+    location.pathname.includes("/talent-check") ||
+    location.pathname.includes("/skill-matching");
 
   return (
     <div className="min-h-screen flex bg-white font-sans text-slate-800">
@@ -65,10 +85,10 @@ export const AppLayout: React.FC = () => {
             {/* Breadcrumb Trail */}
             <nav className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 truncate" aria-label="Breadcrumb">
               <Link to="/" className="hover:text-blue-600 transition-colors shrink-0">
-                Companies
+                Portal
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              {selectedSummary && (
+              {!isRadixRoute && selectedSummary && (
                 <>
                   <span className="font-semibold text-slate-800 truncate max-w-[120px] sm:max-w-[200px]">
                     {selectedSummary.name}
@@ -76,13 +96,13 @@ export const AppLayout: React.FC = () => {
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </>
               )}
-              <span className="text-blue-600 font-medium shrink-0">{pageTitle}</span>
+              <span className="text-blue-600 font-bold shrink-0">{pageTitle}</span>
             </nav>
           </div>
 
           {/* Right Header Zone */}
           <div className="flex items-center gap-2 shrink-0">
-            {selectedSummary && (
+            {!isRadixRoute && selectedSummary && (
               <div className="hidden sm:flex items-center gap-2">
                 <CompanyLogo
                   name={selectedSummary.name}
@@ -95,6 +115,13 @@ export const AppLayout: React.FC = () => {
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
                   {selectedSummary.company_type}
+                </span>
+              </div>
+            )}
+            {isRadixRoute && (
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                  12 RADIX Categories Standard
                 </span>
               </div>
             )}

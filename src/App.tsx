@@ -8,10 +8,13 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { Index } from "./pages/Index";
 import { CompanyIntelligence } from "./pages/CompanyIntelligence";
 import { SkillIntelligence } from "./pages/SkillIntelligence";
+import { JobDescriptionAnalytics } from "./pages/JobDescriptionAnalytics";
+import { ResumeParserPage } from "./pages/ResumeParserPage";
+import { ProfileBuilderPage } from "./pages/ProfileBuilderPage";
+import { TalentCheckPage } from "./pages/TalentCheckPage";
+import { SkillMatchingPage } from "./pages/SkillMatchingPage";
 import { NotFound } from "./pages/NotFound";
 
-// QueryClient configured according to specifications:
-// staleTime 5min, gcTime 10min, retry 1, refetchOnWindowFocus false
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -33,17 +36,35 @@ export default function App() {
             <Suspense
               fallback={
                 <div className="min-h-screen flex items-center justify-center bg-white text-slate-500 text-sm">
-                  Loading portal...
+                  Loading RADIX Talent Match...
                 </div>
               }
             >
               <Routes>
+                {/* Home / Overview */}
                 <Route path="/" element={<Index />} />
 
-                <Route path="/company" element={<AppLayout />}>
-                  <Route index element={<Navigate to="intelligence" replace />} />
-                  <Route path="intelligence" element={<CompanyIntelligence />} />
-                  <Route path="skills" element={<SkillIntelligence />} />
+                {/* All internal application routes with persistent layout & sidebar */}
+                <Route element={<AppLayout />}>
+                  {/* Role 1: Job Description Analytics */}
+                  <Route path="/jd-analytics" element={<JobDescriptionAnalytics />} />
+
+                  {/* Role 2: Resume Parser */}
+                  <Route path="/resume-parser" element={<ResumeParserPage />} />
+
+                  {/* Role 3: Profile Builder & Editor */}
+                  <Route path="/profile-builder" element={<ProfileBuilderPage />} />
+
+                  {/* Role 4: Target Company Talent Readiness Check */}
+                  <Route path="/talent-check" element={<TalentCheckPage />} />
+
+                  {/* Role 5: Deterministic Skill Matching */}
+                  <Route path="/skill-matching" element={<SkillMatchingPage />} />
+
+                  {/* Company Placement Intelligence Modules */}
+                  <Route path="/company" element={<Navigate to="/company/intelligence" replace />} />
+                  <Route path="/company/intelligence" element={<CompanyIntelligence />} />
+                  <Route path="/company/skills" element={<SkillIntelligence />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

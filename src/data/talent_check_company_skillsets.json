@@ -1,0 +1,156 @@
+[
+  {
+    "company_id": 1,
+    "company_name": "Accenture",
+    "tier": "Dream",
+    "industry": "Consulting & Technology Services",
+    "description": "Global enterprise professional services and systems integration.",
+    "category_benchmarks": {
+      "COD": { "level": 7, "criticality": "Critical", "minimum_skills": 3 },
+      "DSA": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "OOD": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "APTI": { "level": 7, "criticality": "Critical", "minimum_skills": 1 },
+      "COMM": { "level": 7, "criticality": "Critical", "minimum_skills": 1 },
+      "AI": { "level": 4, "criticality": "Baseline", "minimum_skills": 1 },
+      "CLOUD": { "level": 6, "criticality": "Important", "minimum_skills": 2 },
+      "SQL": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SWE": { "level": 5, "criticality": "Important", "minimum_skills": 2 },
+      "SYSD": { "level": 4, "criticality": "Baseline", "minimum_skills": 1 },
+      "NETW": { "level": 5, "criticality": "Baseline", "minimum_skills": 1 },
+      "OS": { "level": 6, "criticality": "Important", "minimum_skills": 1 },
+      "OTHER": { "level": 4, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  },
+  {
+    "company_id": 2,
+    "company_name": "Google",
+    "tier": "Super Dream",
+    "industry": "Big Tech & Hyperscale Infrastructure",
+    "description": "World-leading search, cloud, AI, and distributed systems engineering.",
+    "category_benchmarks": {
+      "COD": { "level": 9, "criticality": "Critical", "minimum_skills": 4 },
+      "DSA": { "level": 9, "criticality": "Critical", "minimum_skills": 3 },
+      "OOD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "APTI": { "level": 9, "criticality": "Critical", "minimum_skills": 1 },
+      "COMM": { "level": 8, "criticality": "Important", "minimum_skills": 1 },
+      "AI": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "CLOUD": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SQL": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SWE": { "level": 8, "criticality": "Critical", "minimum_skills": 3 },
+      "SYSD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "NETW": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "OS": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "OTHER": { "level": 5, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  },
+  {
+    "company_id": 3,
+    "company_name": "Microsoft",
+    "tier": "Super Dream",
+    "industry": "Enterprise Software & Cloud Platforms",
+    "description": "Azure, developer platforms, OS, Office 365, and AI Copilots.",
+    "category_benchmarks": {
+      "COD": { "level": 8, "criticality": "Critical", "minimum_skills": 3 },
+      "DSA": { "level": 9, "criticality": "Critical", "minimum_skills": 3 },
+      "OOD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "APTI": { "level": 8, "criticality": "Important", "minimum_skills": 1 },
+      "COMM": { "level": 8, "criticality": "Important", "minimum_skills": 1 },
+      "AI": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "CLOUD": { "level": 9, "criticality": "Critical", "minimum_skills": 2 },
+      "SQL": { "level": 8, "criticality": "Important", "minimum_skills": 2 },
+      "SWE": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "SYSD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "NETW": { "level": 7, "criticality": "Important", "minimum_skills": 1 },
+      "OS": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "OTHER": { "level": 5, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  },
+  {
+    "company_id": 4,
+    "company_name": "Amazon",
+    "tier": "Super Dream",
+    "industry": "E-Commerce & Cloud Infrastructure",
+    "description": "Global scale logistics, distributed microservices, and AWS cloud ecosystem.",
+    "category_benchmarks": {
+      "COD": { "level": 8, "criticality": "Critical", "minimum_skills": 3 },
+      "DSA": { "level": 8, "criticality": "Critical", "minimum_skills": 3 },
+      "OOD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "APTI": { "level": 8, "criticality": "Important", "minimum_skills": 1 },
+      "COMM": { "level": 8, "criticality": "Critical", "minimum_skills": 1 },
+      "AI": { "level": 6, "criticality": "Baseline", "minimum_skills": 1 },
+      "CLOUD": { "level": 9, "criticality": "Critical", "minimum_skills": 3 },
+      "SQL": { "level": 8, "criticality": "Important", "minimum_skills": 2 },
+      "SWE": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "SYSD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "NETW": { "level": 7, "criticality": "Important", "minimum_skills": 1 },
+      "OS": { "level": 7, "criticality": "Important", "minimum_skills": 1 },
+      "OTHER": { "level": 4, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  },
+  {
+    "company_id": 5,
+    "company_name": "TCS (Tata Consultancy Services)",
+    "tier": "Dream / Prime",
+    "industry": "IT Services & Enterprise Consulting",
+    "description": "Global enterprise IT transformation, digital solutions, and software services.",
+    "category_benchmarks": {
+      "COD": { "level": 7, "criticality": "Critical", "minimum_skills": 2 },
+      "DSA": { "level": 7, "criticality": "Critical", "minimum_skills": 2 },
+      "OOD": { "level": 6, "criticality": "Important", "minimum_skills": 1 },
+      "APTI": { "level": 8, "criticality": "Critical", "minimum_skills": 1 },
+      "COMM": { "level": 7, "criticality": "Critical", "minimum_skills": 1 },
+      "AI": { "level": 4, "criticality": "Baseline", "minimum_skills": 1 },
+      "CLOUD": { "level": 5, "criticality": "Important", "minimum_skills": 1 },
+      "SQL": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SWE": { "level": 6, "criticality": "Important", "minimum_skills": 2 },
+      "SYSD": { "level": 4, "criticality": "Baseline", "minimum_skills": 1 },
+      "NETW": { "level": 5, "criticality": "Baseline", "minimum_skills": 1 },
+      "OS": { "level": 6, "criticality": "Important", "minimum_skills": 1 },
+      "OTHER": { "level": 4, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  },
+  {
+    "company_id": 6,
+    "company_name": "Infosys",
+    "tier": "Dream / Power Programmer",
+    "industry": "IT Services & Business Consulting",
+    "description": "Next-generation digital services, enterprise cloud migrations, and software modernization.",
+    "category_benchmarks": {
+      "COD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "DSA": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "OOD": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "APTI": { "level": 8, "criticality": "Critical", "minimum_skills": 1 },
+      "COMM": { "level": 7, "criticality": "Important", "minimum_skills": 1 },
+      "AI": { "level": 5, "criticality": "Baseline", "minimum_skills": 1 },
+      "CLOUD": { "level": 6, "criticality": "Important", "minimum_skills": 1 },
+      "SQL": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SWE": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SYSD": { "level": 5, "criticality": "Baseline", "minimum_skills": 1 },
+      "NETW": { "level": 5, "criticality": "Baseline", "minimum_skills": 1 },
+      "OS": { "level": 6, "criticality": "Important", "minimum_skills": 1 },
+      "OTHER": { "level": 4, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  },
+  {
+    "company_id": 7,
+    "company_name": "Oracle",
+    "tier": "Super Dream",
+    "industry": "Database & Enterprise Cloud Infrastructure",
+    "description": "Relational databases, Oracle Cloud Infrastructure (OCI), ERP, and autonomous databases.",
+    "category_benchmarks": {
+      "COD": { "level": 8, "criticality": "Critical", "minimum_skills": 3 },
+      "DSA": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "OOD": { "level": 8, "criticality": "Critical", "minimum_skills": 2 },
+      "APTI": { "level": 7, "criticality": "Important", "minimum_skills": 1 },
+      "COMM": { "level": 7, "criticality": "Important", "minimum_skills": 1 },
+      "AI": { "level": 5, "criticality": "Baseline", "minimum_skills": 1 },
+      "CLOUD": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SQL": { "level": 9, "criticality": "Critical", "minimum_skills": 3 },
+      "SWE": { "level": 7, "criticality": "Important", "minimum_skills": 2 },
+      "SYSD": { "level": 7, "criticality": "Critical", "minimum_skills": 2 },
+      "NETW": { "level": 6, "criticality": "Important", "minimum_skills": 1 },
+      "OS": { "level": 7, "criticality": "Critical", "minimum_skills": 2 },
+      "OTHER": { "level": 4, "criticality": "Baseline", "minimum_skills": 0 }
+    }
+  }
+]

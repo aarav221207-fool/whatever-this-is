@@ -1,126 +1,85 @@
-# JSS University Noida Companies Research & Placement Analytics Portal
-*(Also known as JSS University Noida Placement Intelligence Hub)*
+# RADIX Talent Match & Placement Analytics Portal
+*(JSS University Noida Placement Intelligence Hub & RADIX Talent Match)*
 
-**College Name**: JSS University Noida  
-**College Short Tag**: JSS  
-**Architecture**: Mobile-first React 19 + TypeScript + Vite + Tailwind CSS + Enterprise Design System  
-
----
-
-## 1. Overview & Architectural Principles
-
-This application is the **Phase 1 UI-only** deployment of the JSS University Noida Placement Intelligence Hub. It provides campus placement candidates and coordinators with deep, multi-dimensional intelligence across recruiting organizations, including comprehensive 22-section company profiles, cognitive taxonomy skill ladders, and recruiting benchmarks.
-
-### Phase 1 Scope (UI Only)
-- **Zero Database / Server Dependencies**: In Phase 1, there is strictly no live database, no Lovable Cloud, and no Supabase client or tables.
-- **Single Source of Truth**: All data is served from a normalized TypeScript seed module (`src/data/seedCompanies.ts`).
-- **Seamless Phase 2 Transition**: The data normalization layer (`src/lib/companyData.ts`) accepts the identical JSONB shapes (`short_json` and `full_json`) that future Supabase tables will provide. Transitioning to Supabase in Phase 2 requires changing only one data provider file.
-- **Fully Public Access (No Login)**: The portal is 100% public. There are no login routes, no authentication context, no protected routes, and no session barriers.
-
-### Strict Privacy & Placement Constraints
-- **Zero CTC / Stipend / Selection Ratio**: As per institutional guidelines, compensation numbers (CTC, base pay, stipends) and selection ratios are strictly excluded from all views.
-- **Zero College Logo Asset**: The college identity is expressed purely through typographic wordmarks and pill badges. No image files or college logos are referenced.
-- **Company Logos**: Recruiting companies use Logo.dev (when `VITE_LOGO_DEV_PUBLISHABLE_KEY` is configured), falling back gracefully to provided database URLs or stylized initial-letter avatars.
+**Architecture**: React 19 + TypeScript + Vite + Express + Tailwind CSS + Lucide Icons + TanStack Query + Vitest  
+**Capabilities**: Full-Stack API, Gemini AI Strategic Evaluation, 12-Category RADIX Data Contract, Deterministic Scoring, Offline PWA Readiness
 
 ---
 
-## 2. Mandatory Routing Contract
+## 1. Executive Summary & Purpose
 
-The application implements nested React Router routes:
+RADIX Talent Match is a unified, end-to-end recruitment intelligence and talent matching platform connecting five integrated roles:
+1. **Role 1 (JD Analytics)**: Ingests Job Descriptions (.pdf, .docx, text), extracts explicit and implied competencies, categorizes them into the standard 12 RADIX categories, and provides verbatim evidentiary citations.
+2. **Role 2 (Resume Parsing)**: Converts unstructured candidate resumes into structured, validated JSON matching the authoritative RADIX Shared Data Contract.
+3. **Role 3 (Profile Builder)**: Candidate profile management and editing hub with persistent `localStorage` synchronization (`radix_profile`), 1-to-10 level proficiency assessment, and RADIX JSON export.
+4. **Role 4 (Talent Check)**: Deterministic candidate readiness evaluation against curated employer hiring bars across all 12 RADIX categories, identifying critical skill gaps and mapping targeted study topics from Bloom's taxonomy.
+5. **Role 5 (Skill Matching Engine)**: Candidate-to-JD match scoring (0–100%), exact/normalized/fuzzy skill comparison, required vs. preferred breakdown, and actionable interview preparation roadmaps with optional Gemini AI strategic insights.
 
-- `/` → **Index**: Enterprise search bar, 5 category filter pills (All, Super Dream, Dream, Standard, Regular), and responsive grid of company cards.
-- `/company` → Redirects automatically to `/company/intelligence`.
-- `/company/intelligence` → **Company Intelligence**: Sticky enterprise header, 22-tab scroll-spy navigation, and 22 deep intelligence section cards.
-- `/company/skills` → **Skill Intelligence**: Bloom's cognitive taxonomy ladder (CU, AP, AS, EV, CR), criticality tiers, and expandable 10-level topic roadmaps with prerequisite locks.
-- `*` → **NotFound**: Handles only genuinely invalid URLs.
-
-### Persistent Context & Refresh Guard
-Company selection persists to `localStorage` under the key `"selected-company"`. On page reload or direct link visit, the application reads `selected-company` and hydrates the context immediately.
+The platform simultaneously preserves all institutional **Company Intelligence** (22-section deep corporate dossiers) and **Skill Intelligence** (Bloom's taxonomy ladders).
 
 ---
 
-## 3. The 22 Deep Intelligence Sections
+## 2. The 12 RADIX Categories Standard
 
-In exact order:
-1. **Company Identity**
-2. **Overview & Vision**
-3. **Leadership**
-4. **Funding & Financials**
-5. **Global Presence**
-6. **Products & Services**
-7. **Technology Stack**
-8. **Partnerships & Ecosystem**
-9. **Competitive Landscape**
-10. **Market Opportunity**
-11. **Core Value Proposition & ESG**
-12. **Culture & Work Life**
-13. **Recent News & Milestones**
-14. **Sales & Customer Metrics**
-15. **Risk & Compliance**
-16. **Work Location & Commute**
-17. **Safety & Wellbeing**
-18. **Career Growth & Learning**
-19. **Brand & Reputation**
-20. **Compensation & Benefits** *(No CTC, No Stipend)*
-21. **Digital Presence & Ratings**
-22. **Contact Information**
+All extracted and evaluated competencies conform strictly to the 12 RADIX categories (+ OTHER):
+
+| Code | Category Name | Core Competencies |
+|---|---|---|
+| `COD` | Coding & Languages | Python, Java, C++, TypeScript, Go, Rust, C#, PHP |
+| `DSA` | Data Structures & Algorithms | Arrays, Trees, Graphs, Dynamic Programming, Big-O Complexity |
+| `OOD` | Object-Oriented Design | SOLID Principles, Design Patterns, OOP Architecture |
+| `APTI` | Aptitude & Logic | Quantitative Aptitude, Logical Reasoning, Analytical Thinking |
+| `COMM` | Communication & Behavioral | Verbal, Written, Stakeholder Management, Team Leadership |
+| `AI` | AI & Machine Learning | Machine Learning, Deep Learning, LLMs, NLP, Prompt Engineering |
+| `CLOUD` | Cloud & DevOps | AWS, Azure, GCP, Docker, Kubernetes, CI/CD, Terraform |
+| `SQL` | SQL & Databases | PostgreSQL, MySQL, MongoDB, Redis, Schema Normalization |
+| `SWE` | Software Engineering & Web | React, Node.js, REST APIs, Git, Testing, Web Fundamentals |
+| `SYSD` | System Design | Scalability, Microservices, Caching, Load Balancing, Reliability |
+| `NETW` | Computer Networks | TCP/IP, HTTP/HTTPS, WebSockets, OSI Model, Network Security |
+| `OS` | Operating Systems | Linux, Concurrency, Multithreading, Memory Management |
+| `OTHER` | Specialized / Other | Domain tools, industry certifications, miscellaneous |
 
 ---
 
-## 4. Skill Intelligence & Bloom's Taxonomy Ladder
+## 3. End-to-End Route Structure
 
-Cognitive proficiency mappings:
-- **Levels 1–2**: `CU` (Conceptual Understanding, `#3b82f6`)
-- **Levels 3–4**: `AP` (Application, `#22c55e`)
-- **Levels 5–6**: `AS` (Analysis, `#eab308`)
-- **Levels 7–8**: `EV` (Evaluation, `#ef4444`)
-- **Levels 9–10**: `CR` (Creation, `#a855f7`)
-
-Criticality thresholding:
-- **Critical**: Required level $\ge 7$
-- **Important**: Required level $5 - 6$
-- **Baseline**: Required level $< 5$
-
-Each skill provides an expandable 10-level milestone roadmap (`src/data/skillTopics.ts`). Levels exceeding the target benchmark are locked with a *"Beyond scope"* marker.
+| Route | Role / Module | Key Functions |
+|---|---|---|
+| `/` | Portal Overview | 5-Role Pipeline launchpad, company search, and category filter pills |
+| `/jd-analytics` | Role 1: JD Analytics | File upload/paste, 12-category extraction, confidence & evidence view |
+| `/resume-parser` | Role 2: Resume Parser | Resume ingestion, entity extraction, export to Profile Builder |
+| `/profile-builder` | Role 3: Profile Builder | Real-time candidate profile editor, level sliders, export RADIX JSON |
+| `/talent-check` | Role 4: Talent Check | Target company selection, 12-category bar comparison, study roadmap |
+| `/skill-matching` | Role 5: Skill Matcher | Candidate vs. JD match score (0-100%), missing requirements, AI insights |
+| `/company/intelligence` | Placement Intelligence | 22 deep corporate sections with scroll-spy navigation |
+| `/company/skills` | Skill Intelligence | Bloom's taxonomy ladders (CU, AP, AS, EV, CR) with topic prerequisite locks |
 
 ---
 
-## 5. Phase 2 — Supabase Data Pipeline
+## 4. API Endpoints (`server.ts`)
 
-### Setup Instructions
-Paste `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` into `.env`, then `npm install && npm run dev`.
-
-### Data Architecture (Read-Only, JSON-Driven)
-- **Zero Joins on 90+ Tables**: To maintain enterprise throughput and avoid complex schema coupling, company data is read exclusively from `public.company_json`:
-  - `company_json.company_id` (int)
-  - `company_json.short_json` (jsonb) → For company listing and cards
-  - `company_json.full_json` (jsonb) → For all 22 deep intelligence sections
-- **4 Skill Tables**: Competency matrices and 10-level topic roadmaps are assembled from 4 minimal tables:
-  - `public.company_skill_levels` (`company_id`, `skill_set_id`, `required_level`, `required_proficiency_level_id`)
-  - `public.skill_set_master` (`skill_set_id`, `skill_set_name`, `short_name`)
-  - `public.proficiency_levels` (`proficiency_level_id`, `proficiency_name`, `proficiency_code`)
-  - `public.skill_set_topics` (`skill_set_id`, `level_number`, `topics`)
-- **Strict Production Database Verification**: Silent mock data fallbacks in production have been completely removed. The UI renders authentic database records, reports genuine database connection errors, or displays explicit empty states.
-- **Supabase Row-Level Security (RLS)**: If you enable RLS on `company_json` and the 4 skill tables, ensure you execute an anonymous SELECT policy in Supabase SQL editor:
-  ```sql
-  CREATE POLICY "Allow anonymous read access" ON public.company_json FOR SELECT USING (true);
-  CREATE POLICY "Allow anonymous read access" ON public.company_skill_levels FOR SELECT USING (true);
-  CREATE POLICY "Allow anonymous read access" ON public.skill_set_master FOR SELECT USING (true);
-  CREATE POLICY "Allow anonymous read access" ON public.proficiency_levels FOR SELECT USING (true);
-  CREATE POLICY "Allow anonymous read access" ON public.skill_set_topics FOR SELECT USING (true);
-  ```
+- `GET /api/health`: Health status and service configuration.
+- `POST /api/v1/jd-analytics/analyze`: Analyzes Job Description text and returns 12-category structured JSON.
+- `POST /api/v1/jd-analytics/validate`: Validates JD payload against RADIX contract schema.
+- `POST /api/v1/resume-parser/parse`: Parses candidate resume and extracts contact, skills, and experience.
+- `POST /api/v1/resume-parser/validate`: Validates CandidateProfile payload against RADIX contract schema.
+- `GET /api/v1/talent-check/companies`: Returns all curated company hiring bar benchmarks.
+- `POST /api/v1/talent-check/evaluate`: Evaluates CandidateProfile against selected company benchmark.
+- `POST /api/v1/skill-matching/match`: Deterministic candidate vs. JD skill matching with optional Gemini AI strategic analysis.
 
 ---
 
-## 6. Development & Testing
+## 5. Verification & Testing
 
+Run full test suite:
 ```bash
-# Run local dev server (port 3000)
-npm run dev
-
-# Run Vitest smoke test suite
-npm run test
-
-# Build production bundle
-npm run build
+npm test
 ```
+The test suite validates:
+- Authoritative RADIX schema contract compliance
+- Canonical skill dictionary normalization and alias resolution
+- Role 1 & Role 2 deterministic document parsers
+- Role 4 Talent Check scoring and topic recommendation generation
+- Role 5 Candidate vs. JD skill comparison engine
+- Complete End-to-End Pipeline integration (Roles 1 $\rightarrow$ 2 $\rightarrow$ 3 $\rightarrow$ 4 $\rightarrow$ 5)
+- Smoke tests for institutional company placement profiles

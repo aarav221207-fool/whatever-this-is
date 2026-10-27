@@ -1,5 +1,19 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, X, Building, RefreshCw, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  Search,
+  X,
+  Building,
+  RefreshCw,
+  AlertTriangle,
+  FileText,
+  FileCode,
+  UserCheck,
+  Target,
+  GitCompare,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 import { CompanyCard } from "../components/common/CompanyCard";
 import { useCompanies } from "../lib/companyApi";
 
@@ -166,6 +180,130 @@ export const Index: React.FC = () => {
                   <X className="w-4 h-4" />
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* RADIX Talent Match Suite 5-Role Pipeline Grid */}
+          <div className="mt-8 max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-3 text-left">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 block">
+                  RADIX TALENT MATCH PIPELINE
+                </span>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Integrated End-to-End Skill Assessment & Placement Intelligence
+                </h3>
+              </div>
+              <span className="text-xs font-semibold text-slate-400 hidden sm:inline">
+                Roles 1–5 Connected
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-left">
+              <Link
+                to="/jd-analytics"
+                className="p-3.5 bg-blue-50/60 hover:bg-blue-50 border border-blue-200/80 rounded-xl transition-all group hover:shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-blue-100 text-blue-700">
+                      Role 1
+                    </span>
+                    <FileText className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-700">JD Analytics</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Ingest JD & extract 12 RADIX categories
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-blue-600 mt-2 flex items-center gap-1">
+                  Analyze JD <ArrowRight className="w-3 h-3" />
+                </span>
+              </Link>
+
+              <Link
+                to="/resume-parser"
+                className="p-3.5 bg-purple-50/60 hover:bg-purple-50 border border-purple-200/80 rounded-xl transition-all group hover:shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-purple-100 text-purple-700">
+                      Role 2
+                    </span>
+                    <FileCode className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-purple-700">Resume Parser</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Extract candidate entities & evidence
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-purple-600 mt-2 flex items-center gap-1">
+                  Parse Resume <ArrowRight className="w-3 h-3" />
+                </span>
+              </Link>
+
+              <Link
+                to="/profile-builder"
+                className="p-3.5 bg-emerald-50/60 hover:bg-emerald-50 border border-emerald-200/80 rounded-xl transition-all group hover:shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-700">
+                      Role 3
+                    </span>
+                    <UserCheck className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-emerald-700">Profile Builder</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Curate competencies & export JSON
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-600 mt-2 flex items-center gap-1">
+                  Edit Profile <ArrowRight className="w-3 h-3" />
+                </span>
+              </Link>
+
+              <Link
+                to="/talent-check"
+                className="p-3.5 bg-amber-50/60 hover:bg-amber-50 border border-amber-200/80 rounded-xl transition-all group hover:shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-100 text-amber-700">
+                      Role 4
+                    </span>
+                    <Target className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-amber-700">Talent Check</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Evaluate readiness vs. employer bar
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-amber-600 mt-2 flex items-center gap-1">
+                  Check Readiness <ArrowRight className="w-3 h-3" />
+                </span>
+              </Link>
+
+              <Link
+                to="/skill-matching"
+                className="p-3.5 bg-indigo-50/60 hover:bg-indigo-50 border border-indigo-200/80 rounded-xl transition-all group hover:shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-indigo-100 text-indigo-700">
+                      Role 5
+                    </span>
+                    <GitCompare className="w-4 h-4 text-indigo-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-700">Skill Matcher</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                    Candidate vs. JD match & gap roadmap
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-indigo-600 mt-2 flex items-center gap-1">
+                  Match Profile <ArrowRight className="w-3 h-3" />
+                </span>
+              </Link>
             </div>
           </div>
         </div>

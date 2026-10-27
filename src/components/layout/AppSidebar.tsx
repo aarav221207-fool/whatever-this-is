@@ -1,6 +1,17 @@
 import React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Building2, Sparkles, ArrowLeft, Layers, ChevronRight } from "lucide-react";
+import {
+  Building2,
+  Sparkles,
+  ArrowLeft,
+  FileText,
+  FileCode,
+  UserCheck,
+  Target,
+  GitCompare,
+  Layers,
+  LayoutDashboard,
+} from "lucide-react";
 import { useCompany } from "../../context/CompanyContext";
 import { CompanyLogo } from "../common/CompanyLogo";
 import { cn } from "../../lib/utils";
@@ -21,18 +32,51 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const navigate = useNavigate();
   const { selectedSummary } = useCompany();
 
-  const navItems = [
+  const radixNavItems = [
+    {
+      name: "Role 1: JD Analytics",
+      path: "/jd-analytics",
+      icon: FileText,
+      badge: "Role 1",
+    },
+    {
+      name: "Role 2: Resume Parser",
+      path: "/resume-parser",
+      icon: FileCode,
+      badge: "Role 2",
+    },
+    {
+      name: "Role 3: Profile Builder",
+      path: "/profile-builder",
+      icon: UserCheck,
+      badge: "Role 3",
+    },
+    {
+      name: "Role 4: Talent Check",
+      path: "/talent-check",
+      icon: Target,
+      badge: "Role 4",
+    },
+    {
+      name: "Role 5: Skill Matcher",
+      path: "/skill-matching",
+      icon: GitCompare,
+      badge: "Role 5",
+    },
+  ];
+
+  const intelligenceNavItems = [
     {
       name: "Company Intelligence",
       path: "/company/intelligence",
       icon: Building2,
-      description: "22 deep corporate sections",
+      badge: "22 Sec",
     },
     {
       name: "Skill Intelligence",
       path: "/company/skills",
       icon: Sparkles,
-      description: "Bloom's taxonomy & roadmaps",
+      badge: "Bloom",
     },
   ];
 
@@ -58,31 +102,30 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         className={cn(
           "fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#F8FAFC] border-r border-[#E5E7EB] transition-all duration-300 ease-in-out lg:static",
           collapsed ? "w-20" : "w-64",
-          // Mobile state
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Top Wordmark & Tag */}
-        <div className="h-16 border-b border-[#E5E7EB] flex items-center px-4 shrink-0 justify-between">
+        <div className="h-16 border-b border-[#E5E7EB] flex items-center px-4 shrink-0 justify-between bg-white">
           {!collapsed ? (
             <div className="flex flex-col">
               <span className="text-[10px] font-bold tracking-widest uppercase text-blue-600">
-                JSS · INTELLIGENCE HUB
+                RADIX TALENT MATCH
               </span>
-              <span className="text-sm font-bold text-slate-800 tracking-tight leading-tight">
-                Placement Portal
+              <span className="text-sm font-extrabold text-slate-800 tracking-tight leading-tight">
+                Placement Hub
               </span>
             </div>
           ) : (
             <div className="w-full flex justify-center">
               <span className="text-xs font-black text-blue-600 bg-blue-50 p-1.5 rounded">
-                JSS
+                RDX
               </span>
             </div>
           )}
         </div>
 
-        {/* Selected Company Capsule */}
+        {/* Selected Company Capsule (if active) */}
         {selectedSummary && (
           <div className="p-3 border-b border-[#E5E7EB] bg-white">
             <div
@@ -112,57 +155,124 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
         )}
 
-        {/* Navigation Section */}
-        <div className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {!collapsed && (
-            <div className="px-3 pb-2 text-[10px] font-bold tracking-wider uppercase text-slate-400">
-              Intelligence Modules
+        {/* Navigation Sections */}
+        <div className="flex-1 py-4 px-2 space-y-4 overflow-y-auto">
+          {/* Overview link */}
+          <div>
+            <NavLink
+              to="/"
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 group",
+                location.pathname === "/"
+                  ? "bg-slate-900 text-white"
+                  : "text-[#334155] hover:bg-slate-100/80 hover:text-slate-900"
+              )}
+              title="Overview"
+            >
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Portal Dashboard</span>}
+            </NavLink>
+          </div>
+
+          {/* RADIX Match Suite */}
+          <div>
+            {!collapsed && (
+              <div className="px-3 pb-1 text-[10px] font-bold tracking-wider uppercase text-blue-600">
+                RADIX Match Pipeline
+              </div>
+            )}
+            <div className="space-y-0.5">
+              {radixNavItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                const Icon = item.icon;
+
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleNavClick}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 group",
+                      isActive
+                        ? "bg-blue-50 text-blue-700 font-bold"
+                        : "text-[#334155] hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                    title={collapsed ? item.name : undefined}
+                  >
+                    <Icon
+                      className={cn(
+                        "w-4 h-4 shrink-0 transition-colors",
+                        isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-700"
+                      )}
+                    />
+                    {!collapsed && (
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <span className="truncate">{item.name}</span>
+                      </div>
+                    )}
+                    {!collapsed && isActive && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                    )}
+                  </NavLink>
+                );
+              })}
             </div>
-          )}
+          </div>
 
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
-            const Icon = item.icon;
+          {/* Company Placement Intelligence */}
+          <div>
+            {!collapsed && (
+              <div className="px-3 pb-1 text-[10px] font-bold tracking-wider uppercase text-slate-400">
+                Company Intelligence
+              </div>
+            )}
+            <div className="space-y-0.5">
+              {intelligenceNavItems.map((item) => {
+                const isActive = location.pathname.startsWith(item.path);
+                const Icon = item.icon;
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={handleNavClick}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-150 group",
-                  isActive
-                    ? "bg-[#EFF6FF] text-[#2563EB]"
-                    : "text-[#334155] hover:bg-slate-100/80 hover:text-slate-900"
-                )}
-                title={collapsed ? item.name : undefined}
-              >
-                <Icon
-                  className={cn(
-                    "w-4 h-4 shrink-0 transition-colors",
-                    isActive ? "text-[#2563EB]" : "text-slate-500 group-hover:text-slate-700"
-                  )}
-                />
-                {!collapsed && (
-                  <div className="flex-1 min-w-0">
-                    <span className="truncate block">{item.name}</span>
-                  </div>
-                )}
-                {!collapsed && isActive && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
-                )}
-              </NavLink>
-            );
-          })}
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={handleNavClick}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 group",
+                      isActive
+                        ? "bg-blue-50 text-blue-700 font-bold"
+                        : "text-[#334155] hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                    title={collapsed ? item.name : undefined}
+                  >
+                    <Icon
+                      className={cn(
+                        "w-4 h-4 shrink-0 transition-colors",
+                        isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-700"
+                      )}
+                    />
+                    {!collapsed && (
+                      <div className="flex-1 min-w-0">
+                        <span className="truncate block">{item.name}</span>
+                      </div>
+                    )}
+                    {!collapsed && isActive && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        {/* Footer: All Companies link (NO user profile, NO logout) */}
+        {/* Footer */}
         <div className="p-3 border-t border-[#E5E7EB] bg-[#F8FAFC]">
           <NavLink
             to="/"
             onClick={handleNavClick}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 transition-all",
+              "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 transition-all",
               collapsed && "justify-center"
             )}
             title="All Companies"
