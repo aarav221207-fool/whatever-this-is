@@ -4,63 +4,110 @@ import {
   FileText,
   Upload,
   Sparkles,
-  CheckCircle,
   Briefcase,
   Building,
   ArrowRight,
-  Code2,
   Copy,
   Layers,
   Search,
+  XCircle,
+  FileCheck2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { analyzeJobDescription } from "../lib/radixApi";
+import { analyzeJobDescription, extractDocument } from "../lib/radixApi";
 import { JobDescriptionResponse, RADIX_CATEGORY_METADATA } from "../types/radix";
 import { SAMPLE_JOB_DESCRIPTIONS } from "../data/radixSamples";
 
 export const JobDescriptionAnalytics: React.FC = () => {
   const navigate = useNavigate();
-  const [inputText, setInputText] = useState(SAMPLE_JOB_DESCRIPTIONS[0].text);
-  const [fileName, setFileName] = useState("Accenture_Cloud_Engineer_JD.pdf");
+  const [inputText, setInputText] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [isExtracting, setIsExtracting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [result, setResult] = useState<JobDescriptionResponse | null>(null);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) {
-      toast.error("Please enter or paste Job Description text");
+      toast.error("Please upload a Job Description file (.pdf, .docx, .txt) or paste text");
       return;
     }
     setIsProcessing(true);
+    setUploadError(null);
     try {
-      const data = await analyzeJobDescription(inputText, fileName);
+      const data = await analyzeJobDescription(inputText, fileName || "job_description.txt");
       setResult(data);
       // Cache last analyzed JD for instant matching in Role 5
       localStorage.setItem("radix_last_jd", JSON.stringify(data));
-      toast.success(`Successfully analyzed ${data.skills.length} skills across 12 RADIX categories`);
-    } catch {
-      toast.error("Failed to analyze job description");
+      if (data.skills.length === 0) {
+        toast.warning("Parsed Job Description, but no technical skills were matched.");
+      } else {
+        toast.success(`Successfully analyzed ${data.skills.length} skills across 12 RADIX categories`);
+      }
+    } catch (err: any) {
+      const msg = err.message || "Failed to analyze job description";
+      setUploadError(msg);
+      toast.error(msg);
+      setResult(null);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset current state
+    setUploadError(null);
+    setResult(null);
+    setInputText("");
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        setInputText(content);
-        toast.info(`Loaded ${file.name}`);
+
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!["pdf", "docx", "txt", "md"].includes(ext || "")) {
+      const err = `Unsupported file format (.${ext}). Please upload a .pdf, .docx, or .txt file.`;
+      setUploadError(err);
+      toast.error(err);
+      return;
+    }
+
+    setIsExtracting(true);
+    const toastId = toast.loading(`Extracting text from ${file.name}...`);
+
+    try {
+      const extracted = await extractDocument(file);
+      setInputText(extracted.text);
+      toast.success(`Extracted ${extracted.word_count} words from ${file.name}`, { id: toastId });
+
+      // Automatically trigger analysis
+      setIsProcessing(true);
+      try {
+        const analyzed = await analyzeJobDescription(extracted.text, extracted.file_name);
+        setResult(analyzed);
+        localStorage.setItem("radix_last_jd", JSON.stringify(analyzed));
+        toast.success(`Extracted ${analyzed.skills.length} requirements for ${analyzed.role} at ${analyzed.company}`);
+      } catch (analyzeErr: any) {
+        const errMsg = analyzeErr.message || "Extraction succeeded, but JD analysis failed";
+        setUploadError(errMsg);
+        toast.error(errMsg);
+      } finally {
+        setIsProcessing(false);
       }
-    };
-    reader.readAsText(file);
+    } catch (err: any) {
+      const msg = err.message || "Failed to extract text from document";
+      setUploadError(msg);
+      toast.error(msg, { id: toastId });
+      setInputText("");
+      setResult(null);
+    } finally {
+      setIsExtracting(false);
+      e.target.value = "";
+    }
   };
 
   const loadSample = (sample: typeof SAMPLE_JOB_DESCRIPTIONS[0]) => {
+    setUploadError(null);
     setInputText(sample.text);
     setFileName(`${sample.company}_${sample.title.replace(/\s+/g, "_")}.pdf`);
     toast.info(`Loaded sample: ${sample.company} - ${sample.title}`);
@@ -81,10 +128,10 @@ export const JobDescriptionAnalytics: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
               Role 1 · JD Analytics
             </span>
-            <span className="text-xs text-slate-500 font-medium">12-Category Extraction</span>
+            <span className="text-xs text-slate-500 font-medium">Binary PDF/DOCX Ingestion & 12-Category Classification</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Job Description Analytics
+            Job Description Analytics & Competency Extraction
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
             Extract technical competencies, required vs. preferred criteria, and verbatim evidentiary citations classified into the standard 12 RADIX categories.
@@ -97,12 +144,25 @@ export const JobDescriptionAnalytics: React.FC = () => {
               onClick={handleSendToMatching}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all"
             >
-              <span>Match With Candidate</span>
+              <span>Match With Candidate (Role 5)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
+
+      {/* Upload Error Banner */}
+      {uploadError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-900">
+          <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800">
+              Document Extraction / Analysis Error
+            </h4>
+            <p className="text-xs text-rose-700 leading-relaxed">{uploadError}</p>
+          </div>
+        </div>
+      )}
 
       {/* Input Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -136,38 +196,52 @@ export const JobDescriptionAnalytics: React.FC = () => {
             </div>
 
             {/* Drag & drop file area */}
-            <div className="relative border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-lg p-4 text-center transition-colors bg-slate-50">
+            <div className={`relative border-2 border-dashed rounded-lg p-5 text-center transition-colors ${
+              isExtracting ? "border-blue-500 bg-blue-50/50" : "border-slate-300 hover:border-blue-500 bg-slate-50"
+            }`}>
               <input
                 type="file"
-                accept=".txt,.pdf,.docx"
+                accept=".pdf,.docx,.txt"
                 onChange={handleFileUpload}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={isExtracting || isProcessing}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
-              <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1" />
-              <p className="text-xs font-medium text-slate-700">
-                Click to upload <span className="text-blue-600">.pdf, .docx, or .txt</span>
+              <Upload className={`w-7 h-7 mx-auto mb-2 ${isExtracting ? "text-blue-600 animate-bounce" : "text-slate-400"}`} />
+              <p className="text-xs font-semibold text-slate-800">
+                {isExtracting ? "Extracting document bytes via PDF/DOCX parser..." : "Upload Job Description document"}
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Active file: {fileName}</p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Supports real <strong className="text-blue-700">PDF, DOCX, and TXT</strong> (up to 10 MB)
+              </p>
+              {fileName && (
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50 text-blue-800 text-[11px] font-medium border border-blue-200">
+                  <FileCheck2 className="w-3.5 h-3.5" />
+                  <span>{fileName}</span>
+                </div>
+              )}
             </div>
 
             {/* Textarea */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-semibold text-slate-600">Document Text</span>
+                <span className="text-xs font-semibold text-slate-600">Extracted / Editable Text</span>
                 <span className="text-[11px] text-slate-400">{inputText.length} characters</span>
               </div>
               <textarea
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                rows={12}
-                placeholder="Paste Job Description text here..."
+                onChange={(e) => {
+                  setInputText(e.target.value);
+                  setUploadError(null);
+                }}
+                rows={11}
+                placeholder="Upload a .pdf or .docx Job Description, or paste job requirements text here..."
                 className="w-full p-3 text-xs font-mono bg-slate-900 text-slate-100 rounded-lg border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
             <button
               onClick={handleAnalyze}
-              disabled={isProcessing}
+              disabled={isExtracting || isProcessing || !inputText.trim()}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isProcessing ? (
@@ -197,12 +271,14 @@ export const JobDescriptionAnalytics: React.FC = () => {
                       <Building className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-slate-900">{result.role}</h2>
+                      <h2 className="text-lg font-bold text-slate-900">{result.role || "Software Engineer"}</h2>
                       <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                         <Briefcase className="w-3.5 h-3.5" />
-                        <span>{result.company}</span>
+                        <span>{result.company || "Target Employer"}</span>
                         <span>•</span>
                         <span>{result.skills.length} Extracted Skills</span>
+                        <span>•</span>
+                        <span className="text-slate-400">Source: {result.source_file}</span>
                       </p>
                     </div>
                   </div>
@@ -247,49 +323,55 @@ export const JobDescriptionAnalytics: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <Layers className="w-4 h-4 text-blue-600" />
-                    <span>Extracted Skills with Evidentiary Citations</span>
+                    <span>Extracted Skills with Evidentiary Citations ({result.skills.length})</span>
                   </h3>
                   <span className="text-xs text-slate-500">12 RADIX Categories</span>
                 </div>
 
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                  {result.skills.map((skill, idx) => {
-                    const meta = RADIX_CATEGORY_METADATA[skill.category_code] || RADIX_CATEGORY_METADATA.OTHER;
-                    return (
-                      <div
-                        key={idx}
-                        className="p-3 bg-slate-50 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-900">{skill.skill_name}</span>
+                {result.skills.length > 0 ? (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {result.skills.map((skill, idx) => {
+                      const meta = RADIX_CATEGORY_METADATA[skill.category_code] || RADIX_CATEGORY_METADATA.OTHER;
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3 bg-slate-50 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">{skill.skill_name}</span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold border ${meta.badgeColor}`}
+                              >
+                                {skill.category_code} · {meta.name}
+                              </span>
+                            </div>
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${meta.badgeColor}`}
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                                skill.confidence === "high"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : skill.confidence === "medium"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
                             >
-                              {skill.category_code} · {meta.name}
+                              {skill.confidence} confidence
                             </span>
                           </div>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                              skill.confidence === "high"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : skill.confidence === "medium"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {skill.confidence} confidence
-                          </span>
+                          {skill.evidence && (
+                            <p className="text-[11px] text-slate-600 italic bg-white p-2 rounded border border-slate-100">
+                              {skill.evidence}
+                            </p>
+                          )}
                         </div>
-                        {skill.evidence && (
-                          <p className="text-[11px] text-slate-600 italic bg-white p-2 rounded border border-slate-100">
-                            {skill.evidence}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs border border-dashed border-slate-200 rounded-lg">
+                    No recognized technical skills found matching the 12 RADIX categories in this Job Description.
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -300,14 +382,14 @@ export const JobDescriptionAnalytics: React.FC = () => {
               <div className="max-w-md mx-auto space-y-1">
                 <h3 className="text-base font-bold text-slate-800">No Job Description Analyzed Yet</h3>
                 <p className="text-xs text-slate-500">
-                  Click <span className="font-semibold text-slate-700">"Analyze & Extract RADIX Competencies"</span> on the left to extract skills, category classifications, and grounded citations.
+                  Upload a <span className="font-semibold text-slate-700">.pdf, .docx, or .txt</span> Job Description on the left or select a pre-configured sample to extract RADIX requirements.
                 </p>
               </div>
               <button
-                onClick={handleAnalyze}
+                onClick={() => loadSample(SAMPLE_JOB_DESCRIPTIONS[0])}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-all"
               >
-                Run Quick Demo Analysis
+                Load Sample Job Description
               </button>
             </div>
           )}

@@ -103,14 +103,23 @@ export const ProfileBuilderPage: React.FC = () => {
   };
 
   const handleDownloadJson = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profile, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `${profile.name.replace(/\s+/g, "_")}_RADIX_Profile.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    toast.success("Profile JSON downloaded");
+    try {
+      const jsonBlob = new Blob([JSON.stringify(profile, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(jsonBlob);
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.href = url;
+      const safeName = (profile.name || "candidate").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+      downloadAnchor.download = `${safeName}_RADIX_Profile.json`;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      document.body.removeChild(downloadAnchor);
+      URL.revokeObjectURL(url);
+      toast.success("Candidate Profile JSON successfully downloaded");
+    } catch (err: any) {
+      toast.error(`Download failed: ${err.message}`);
+    }
   };
 
   return (

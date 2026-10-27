@@ -24,6 +24,7 @@ import {
   RADIX_CATEGORY_METADATA,
 } from "../types/radix";
 import { parseJDText } from "../lib/parserService";
+import { matchCandidateToJD } from "../lib/skillMatchingEngine";
 
 export const SkillMatchingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export const SkillMatchingPage: React.FC = () => {
 
   const [activeJD, setActiveJD] = useState<JobDescriptionResponse>(initialJD);
   const [matchResult, setMatchResult] = useState<SkillMatchResult>(() => {
-    return matchSkills(candidate, initialJD, false) as any;
+    return matchCandidateToJD(candidate, initialJD);
   });
 
   const handleSelectSampleJD = (id: string) => {
@@ -57,8 +58,8 @@ export const SkillMatchingPage: React.FC = () => {
     if (sample) {
       const parsed = parseJDText(sample.text, `${sample.company}_JD.pdf`);
       setActiveJD(parsed);
-      const res = matchSkills(candidate, parsed, false);
-      Promise.resolve(res).then((r) => setMatchResult(r));
+      const res = matchCandidateToJD(candidate, parsed);
+      setMatchResult(res);
       toast.info(`Loaded JD: ${sample.company} - ${sample.title}`);
     }
   };
