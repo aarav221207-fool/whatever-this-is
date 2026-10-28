@@ -103,7 +103,7 @@ export function useCompanyProfile(id: number | null | undefined) {
       const normalizedCompany = {
         ...(company as any),
         name: companyName || "Company",
-        short_name: (company as any).short_name ?? (company as any).shortName ?? companyName || "Company",
+        short_name: ((company as any).short_name ?? (company as any).shortName ?? companyName) || "Company",
         website_url: (company as any).website_url ?? (company as any).website ?? (company as any).url ?? "",
       };
 
