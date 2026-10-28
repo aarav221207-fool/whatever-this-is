@@ -14,6 +14,7 @@ import { ProfileBuilderPage } from "./pages/ProfileBuilderPage";
 import { TalentCheckPage } from "./pages/TalentCheckPage";
 import { SkillMatchingPage } from "./pages/SkillMatchingPage";
 import { NotFound } from "./pages/NotFound";
+import { AuthPage } from "./pages/AuthPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,7 @@ export default function App() {
               <Routes>
                 {/* Home / Overview */}
                 <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
 
                 {/* All internal application routes with persistent layout & sidebar */}
                 <Route element={<AppLayout />}>

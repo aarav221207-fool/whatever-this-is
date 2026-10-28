@@ -4,7 +4,7 @@ import { SEED_COMPANIES, RawCompanySeed } from "../data/seedCompanies";
 import { COMPANY_BENCHMARKS } from "../lib/talentCheckEngine";
 import { SAMPLE_JOB_DESCRIPTIONS, SAMPLE_RESUMES } from "../data/radixSamples";
 import { MOCK_PARSED_RESUME } from "../../mockData";
-import { SKILL_TOPICS } from "../data/skillTopics";
+import { SKILL_TOPICS_MAP } from "../data/skillTopics";
 import talentCheckSkillsets from "../data/talent_check_company_skillsets.json";
 import { ExtractedDocument } from "./documentExtractor";
 
@@ -71,6 +71,16 @@ export interface ValidationReport {
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const UPLOADS_FILE = path.join(DATA_DIR, "uploaded_records.json");
+
+// Normalize the actual skill-topic source into a flat validator-friendly list.
+// These records have skill progression levels, not Bloom taxonomy labels.
+const SKILL_TOPICS = Object.entries(SKILL_TOPICS_MAP).flatMap(([skillSetId, topics]) =>
+  topics.map((topic) => ({
+    topic_id: `${skillSetId}-${topic.level_number}`,
+    topic_name: topic.topic,
+    level_number: topic.level_number,
+  }))
+);
 
 function ensureDataDir(): void {
   try {
@@ -640,17 +650,16 @@ export function performFullDataAudit(): ValidationReport {
     }
     seenTopicIds.add(t.topic_id);
 
-    const validBloom = ["CU", "AP", "AS", "EV", "CR"];
-    if (!validBloom.includes(t.bloom_level)) {
+    if (!Number.isInteger(t.level_number) || t.level_number < 1 || t.level_number > 10) {
       addFinding(
-        "TOPIC_INVALID_BLOOM",
+        "TOPIC_INVALID_LEVEL",
         "skill_topics",
         "error",
-        "Invalid Bloom Taxonomy Level",
-        `Topic '${t.topic_name}' has unrecognized bloom level '${t.bloom_level}'.`,
+        "Invalid Skill Progression Level",
+        `Topic '${t.topic_name}' has an invalid progression level '${t.level_number}'.`,
         t.topic_id,
-        "bloom_level",
-        "Use standard Bloom codes: CU, AP, AS, EV, CR."
+        "level_number",
+        "Use skill progression levels from 1 through 10."
       );
       hasErr = true;
     }
@@ -753,13 +762,13 @@ export function performFullDataAudit(): ValidationReport {
     },
     {
       dataset: "skill_topics",
-      displayName: "Curriculum Skill Topics & Bloom Levels",
+      displayName: "Skill Progression Topics",
       totalRecords: SKILL_TOPICS.length,
       validRecords: topicValid,
       warningsCount: topicWarnings,
       errorsCount: topicErrors,
       complianceRate: Math.round((topicValid / Math.max(SKILL_TOPICS.length, 1)) * 100),
-      description: "Engineering assessment questions indexed by Bloom taxonomy cognitive complexity.",
+      description: "Skill topics organized into progression levels from 1 to 10.",
     },
     {
       dataset: "uploaded_datasets",

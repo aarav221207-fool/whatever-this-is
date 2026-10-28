@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { parseResume, extractDocument } from "../lib/radixApi";
 import { saveStoredProfile } from "../lib/radixAdapters";
+import { getStudentJobRecommendations, loadStudentProfile, saveStudentResume, type JobRecommendation } from "../lib/placementRepository";
 import { CandidateProfile, RADIX_CATEGORY_METADATA } from "../types/radix";
 import { SAMPLE_RESUMES } from "../data/radixSamples";
 
@@ -31,6 +32,29 @@ export const ResumeParserPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
+  const [sampleMode, setSampleMode] = useState(false);
+  const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
+  const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
+
+  // Returning students get their persisted profile and the latest database-backed recommendations.
+  useEffect(() => {
+    let active = true;
+    loadStudentProfile()
+      .then(async (savedProfile) => {
+        if (!active || !savedProfile) return;
+        setCandidate(savedProfile);
+        saveStoredProfile(savedProfile);
+        const jobs = await getStudentJobRecommendations(savedProfile);
+        if (active) {
+          setRecommendations(jobs);
+          setRecommendationsLoaded(true);
+        }
+      })
+      .catch(() => {
+        // The upload page remains usable before sign-in; authenticated uploads enforce database access.
+      });
+    return () => { active = false; };
+  }, []);
 
   const handleParse = async () => {
     if (!inputText.trim()) {
@@ -40,19 +64,30 @@ export const ResumeParserPage: React.FC = () => {
     setIsProcessing(true);
     setUploadError(null);
     try {
-      const data = await parseResume(inputText, fileName || "uploaded_resume.txt");
-      if (data.skills.length === 0) {
-        toast.warning("Parsed resume, but no recognized RADIX skills were matched.");
-      } else {
-        toast.success(`Successfully parsed profile for ${data.name} with ${data.skills.length} skills`);
-      }
+      const data = await parseResume(inputText, fileName || "pasted_resume.txt");
       setCandidate(data);
+      if (sampleMode) {
+        setRecommendations([]);
+        setRecommendationsLoaded(false);
+        toast.info("Demo preview only. Sample profiles are never written to Supabase or used for real recommendations.");
+        return;
+      }
       saveStoredProfile(data);
+      const jobRecommendations = await saveStudentResume(data);
+      setRecommendations(jobRecommendations);
+      setRecommendationsLoaded(true);
+      if (data.skills.length === 0) {
+        toast.warning("Profile saved, but the resume contained no recognized RADIX skills.");
+      } else {
+        toast.success("Profile and " + data.skills.length + " skills saved to Supabase. Found " + jobRecommendations.length + " real job recommendations.");
+      }
     } catch (err: any) {
-      const msg = err.message || "Failed to parse resume";
+      const msg = err.message || "Failed to parse or save the resume";
       setUploadError(msg);
       toast.error(msg);
       setCandidate(null);
+      setRecommendations([]);
+      setRecommendationsLoaded(false);
     } finally {
       setIsProcessing(false);
     }
@@ -62,74 +97,71 @@ export const ResumeParserPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset current state
     setUploadError(null);
     setCandidate(null);
     setInputText("");
     setFileName(file.name);
+    setSampleMode(false);
+    setRecommendations([]);
+    setRecommendationsLoaded(false);
 
-    // Validate extension
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx", "txt", "md"].includes(ext || "")) {
-      const err = `Unsupported file format (.${ext}). Please upload a .pdf, .docx, or .txt file.`;
+    if (!["pdf", "docx", "txt"].includes(ext || "")) {
+      const err = "Unsupported file format (." + ext + "). Please upload a .pdf, .docx, or .txt file.";
       setUploadError(err);
       toast.error(err);
+      e.target.value = "";
       return;
     }
 
     setIsExtracting(true);
-    const toastId = toast.loading(`Extracting text from ${file.name}...`);
-
+    const toastId = toast.loading("Extracting text from " + file.name + "...");
     try {
       const extracted = await extractDocument(file);
       setInputText(extracted.text);
-      toast.success(`Extracted ${extracted.word_count} words from ${file.name}`, { id: toastId });
-
-      // Automatically trigger parsing after extraction
+      toast.success("Extracted " + extracted.word_count + " words from " + file.name, { id: toastId });
       setIsProcessing(true);
-      try {
-        const parsed = await parseResume(extracted.text, extracted.file_name);
-        setCandidate(parsed);
-        saveStoredProfile(parsed);
-        toast.success(`Parsed candidate profile: ${parsed.name} (${parsed.skills.length} skills)`);
-      } catch (parseErr: any) {
-        const errMsg = parseErr.message || "Extraction succeeded, but parsing failed";
-        setUploadError(errMsg);
-        toast.error(errMsg);
-      } finally {
-        setIsProcessing(false);
-      }
+      const parsed = await parseResume(extracted.text, extracted.file_name);
+      const jobRecommendations = await saveStudentResume(parsed, file);
+      setCandidate(parsed);
+      saveStoredProfile(parsed);
+      setRecommendations(jobRecommendations);
+      setRecommendationsLoaded(true);
+      toast.success("Resume stored in Supabase; saved " + parsed.skills.length + " skills and generated " + jobRecommendations.length + " real job recommendations.");
     } catch (err: any) {
-      const msg = err.message || "Failed to extract text from document";
+      const msg = err.message || "Failed to extract, parse, or save the resume";
       setUploadError(msg);
       toast.error(msg, { id: toastId });
-      setInputText("");
       setCandidate(null);
+      setRecommendations([]);
+      setRecommendationsLoaded(false);
     } finally {
       setIsExtracting(false);
-      // Clear file input value to allow re-uploading the same file if needed
+      setIsProcessing(false);
       e.target.value = "";
     }
   };
 
   const loadSample = (sample: typeof SAMPLE_RESUMES[0]) => {
     setUploadError(null);
-    setFileName(`${sample.candidateName.replace(/\s+/g, "_")}_Resume.pdf`);
+    setFileName(sample.candidateName.replace(/\s+/g, "_") + "_Resume_DEMO.pdf");
     setInputText(sample.text);
-    toast.info(`Loaded sample resume: ${sample.candidateName}`);
+    setSampleMode(true);
+    setCandidate(null);
+    setRecommendations([]);
+    setRecommendationsLoaded(false);
+    toast.info("Demo resume loaded. It will not be saved to the database.");
   };
 
   const handleOpenInBuilder = () => {
-    if (candidate) {
-      saveStoredProfile(candidate);
-    }
+    if (candidate && !sampleMode) saveStoredProfile(candidate);
+    if (sampleMode) toast.info("Demo preview was not saved. Upload a real resume before editing a persistent profile.");
     navigate("/profile-builder");
   };
 
   const handleGoToTalentCheck = () => {
-    if (candidate) {
-      saveStoredProfile(candidate);
-    }
+    if (candidate && !sampleMode) saveStoredProfile(candidate);
+    if (sampleMode) toast.info("Demo preview was not saved. Upload a real resume before using live talent checks.");
     navigate("/talent-check");
   };
 
@@ -153,6 +185,12 @@ export const ResumeParserPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/auth?next=/resume-parser")}
+            className="px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
+          >
+            Account / Sign in
+          </button>
           {candidate && (
             <>
               <button
@@ -256,6 +294,7 @@ export const ResumeParserPage: React.FC = () => {
                 onChange={(e) => {
                   setInputText(e.target.value);
                   setUploadError(null);
+                  setSampleMode(false);
                 }}
                 rows={11}
                 placeholder="Upload a .pdf or .docx resume, or paste raw resume text here..."
@@ -438,12 +477,56 @@ export const ResumeParserPage: React.FC = () => {
                 onClick={() => loadSample(SAMPLE_RESUMES[0])}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-all"
               >
-                Load Sample Resume
+                Load Demo Resume (Not Saved)
               </button>
             </div>
           )}
         </div>
       </div>
+      {recommendationsLoaded && (
+        <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900">Best job matches for this profile</h2>
+              <p className="mt-1 text-xs text-slate-500">Ranked using this student's stored skills and active job descriptions in Supabase. No sample jobs are included.</p>
+            </div>
+          </div>
+          {recommendations.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center">
+              <h3 className="font-bold text-slate-800">No suitable saved jobs found yet</h3>
+              <p className="mt-1 text-sm text-slate-500">Your profile and skills are saved. Recommendations appear automatically when active job descriptions in the database match your skills.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recommendations.map(({ job, match }) => (
+                <article key={job.id} className="rounded-lg border border-slate-200 p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold text-slate-900">{job.role_title || "Role not specified in uploaded JD"}</h3>
+                      <p className="mt-1 text-sm text-slate-600">{job.company_name || "Company not identified in document"}{job.location ? " · " + job.location : ""}</p>
+                      <p className="mt-1 text-xs text-slate-500">{job.source_file || "Uploaded job description"}</p>
+                    </div>
+                    <div className="shrink-0 rounded-lg bg-emerald-50 px-3 py-2 text-center">
+                      <p className="text-xl font-extrabold text-emerald-700">{match.overall_match_score}%</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-800">Skill match</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="font-bold text-emerald-700">Matched skills ({match.matched_skills.length})</p>
+                      <p className="mt-1 text-slate-600">{match.matched_skills.length ? match.matched_skills.map((item) => item.skill_name).join(", ") : "No required skills matched yet."}</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-rose-700">Missing required skills ({match.missing_required_skills.length})</p>
+                      <p className="mt-1 text-slate-600">{match.missing_required_skills.length ? match.missing_required_skills.join(", ") : "No missing required skills identified."}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };

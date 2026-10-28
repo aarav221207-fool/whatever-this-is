@@ -47,19 +47,37 @@ describe("Data Source Registry & Quality Audit Engine", () => {
     expect(phoneFinding?.field).toBe("phone");
   });
 
-  it("validates dynamic user uploads and flags high null rates and inconsistent rows", async () => {
-    const csvContent = `id,name,role,salary\n1,Alice,Engineer,\n2,Bob,,\n3,Charlie,,`;
-    const buffer = Buffer.from(csvContent, "utf-8");
+  it("validates uploaded dataset audit metadata without claiming CSV resume extraction support", async () => {
+    const extracted = await extractTextFromBuffer(
+      Buffer.from("Uploaded dataset audit notes: this text file refers to a data quality review.", "utf-8"),
+      "audit_test.txt",
+      "text/plain"
+    );
+    const uploadedRecord = registerUploadedRecord({
+      ...extracted,
+      structured_data: {
+        tabular: {
+          total_rows: 3,
+          headers: ["id", "name", "role", "salary"],
+          inconsistent_rows: [
+            { row_index: 3, found: 3, expected: 4, reason: "Missing one column" },
+          ],
+          sheets: [
+            {
+              row_count: 3,
+              missing_values_by_column: { salary: 3, role: 2 },
+            },
+          ],
+        },
+      },
+    });
 
-    const extracted = await extractTextFromBuffer(buffer, "audit_test.csv");
-    const uploadedRecord = registerUploadedRecord(extracted);
-
-    expect(uploadedRecord.fileName).toBe("audit_test.csv");
+    expect(uploadedRecord.fileName).toBe("audit_test.txt");
     expect(uploadedRecord.customFindings).toBeDefined();
     expect(uploadedRecord.customFindings!.length).toBeGreaterThan(0);
 
     const report = performFullDataAudit();
-    const uploadedFindings = report.findings.filter((f) => f.dataset === "uploaded_dataset");
+    const uploadedFindings = report.findings.filter((finding) => finding.dataset === "uploaded_dataset");
     expect(uploadedFindings.length).toBeGreaterThan(0);
   });
 });

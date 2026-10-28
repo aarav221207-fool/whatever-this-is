@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { analyzeJobDescription, extractDocument } from "../lib/radixApi";
 import { JobDescriptionResponse, RADIX_CATEGORY_METADATA } from "../types/radix";
 import { SAMPLE_JOB_DESCRIPTIONS } from "../data/radixSamples";
+import { saveJobDescription } from "../lib/placementRepository";
 
 export const JobDescriptionAnalytics: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export const JobDescriptionAnalytics: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [result, setResult] = useState<JobDescriptionResponse | null>(null);
+  const [sampleMode, setSampleMode] = useState(false);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) {
@@ -36,16 +38,20 @@ export const JobDescriptionAnalytics: React.FC = () => {
     setUploadError(null);
     try {
       const data = await analyzeJobDescription(inputText, fileName || "job_description.txt");
+      if (sampleMode) {
+        setResult(data);
+        toast.info("Demo JD preview only. It is not stored as a real job or used for live matching.");
+        return;
+      }
+      const savedJob = await saveJobDescription(data, inputText, fileName || data.source_file || "job_description.txt");
       setResult(data);
-      // Cache last analyzed JD for instant matching in Role 5
       localStorage.setItem("radix_last_jd", JSON.stringify(data));
+      toast.success("Saved job for " + (savedJob.company_name || "unidentified company") + " to Supabase. Student matches have been refreshed.");
       if (data.skills.length === 0) {
-        toast.warning("Parsed Job Description, but no technical skills were matched.");
-      } else {
-        toast.success(`Successfully analyzed ${data.skills.length} skills across 12 RADIX categories`);
+        toast.warning("The JD was saved, but no recognized RADIX skills were extracted.");
       }
     } catch (err: any) {
-      const msg = err.message || "Failed to analyze job description";
+      const msg = err.message || "Failed to analyze or save job description";
       setUploadError(msg);
       toast.error(msg);
       setResult(null);
@@ -58,50 +64,41 @@ export const JobDescriptionAnalytics: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset current state
     setUploadError(null);
     setResult(null);
     setInputText("");
     setFileName(file.name);
+    setSampleMode(false);
 
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx", "txt", "md"].includes(ext || "")) {
-      const err = `Unsupported file format (.${ext}). Please upload a .pdf, .docx, or .txt file.`;
+    if (!["pdf", "docx", "txt"].includes(ext || "")) {
+      const err = "Unsupported file format (." + ext + "). Please upload a .pdf, .docx, or .txt file.";
       setUploadError(err);
       toast.error(err);
+      e.target.value = "";
       return;
     }
 
     setIsExtracting(true);
-    const toastId = toast.loading(`Extracting text from ${file.name}...`);
-
+    const toastId = toast.loading("Extracting text from " + file.name + "...");
     try {
       const extracted = await extractDocument(file);
       setInputText(extracted.text);
-      toast.success(`Extracted ${extracted.word_count} words from ${file.name}`, { id: toastId });
-
-      // Automatically trigger analysis
+      toast.success("Extracted " + extracted.word_count + " words from " + file.name, { id: toastId });
       setIsProcessing(true);
-      try {
-        const analyzed = await analyzeJobDescription(extracted.text, extracted.file_name);
-        setResult(analyzed);
-        localStorage.setItem("radix_last_jd", JSON.stringify(analyzed));
-        toast.success(`Extracted ${analyzed.skills.length} requirements for ${analyzed.role} at ${analyzed.company}`);
-      } catch (analyzeErr: any) {
-        const errMsg = analyzeErr.message || "Extraction succeeded, but JD analysis failed";
-        setUploadError(errMsg);
-        toast.error(errMsg);
-      } finally {
-        setIsProcessing(false);
-      }
+      const analyzed = await analyzeJobDescription(extracted.text, extracted.file_name);
+      const savedJob = await saveJobDescription(analyzed, extracted.text, extracted.file_name);
+      setResult(analyzed);
+      localStorage.setItem("radix_last_jd", JSON.stringify(analyzed));
+      toast.success("Saved " + (savedJob.role_title || "job description") + " to Supabase and refreshed student matches.");
     } catch (err: any) {
-      const msg = err.message || "Failed to extract text from document";
+      const msg = err.message || "Failed to extract, analyze, or save the Job Description";
       setUploadError(msg);
       toast.error(msg, { id: toastId });
-      setInputText("");
       setResult(null);
     } finally {
       setIsExtracting(false);
+      setIsProcessing(false);
       e.target.value = "";
     }
   };
@@ -109,12 +106,18 @@ export const JobDescriptionAnalytics: React.FC = () => {
   const loadSample = (sample: typeof SAMPLE_JOB_DESCRIPTIONS[0]) => {
     setUploadError(null);
     setInputText(sample.text);
-    setFileName(`${sample.company}_${sample.title.replace(/\s+/g, "_")}.pdf`);
-    toast.info(`Loaded sample: ${sample.company} - ${sample.title}`);
+    setFileName(sample.company + "_" + sample.title.replace(/\s+/g, "_") + "_DEMO.pdf");
+    setSampleMode(true);
+    setResult(null);
+    toast.info("Demo JD loaded. It will not be saved or used for real matching.");
   };
 
   const handleSendToMatching = () => {
     if (!result) return;
+    if (sampleMode) {
+      toast.info("Demo JDs cannot be used for live company-to-student matching. Upload a real JD first.");
+      return;
+    }
     localStorage.setItem("radix_last_jd", JSON.stringify(result));
     navigate("/skill-matching");
   };
@@ -139,6 +142,12 @@ export const JobDescriptionAnalytics: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/auth?next=/jd-analytics")}
+            className="px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
+          >
+            Account / Sign in
+          </button>
           {result && (
             <button
               onClick={handleSendToMatching}
@@ -231,6 +240,7 @@ export const JobDescriptionAnalytics: React.FC = () => {
                 value={inputText}
                 onChange={(e) => {
                   setInputText(e.target.value);
+                setSampleMode(false);
                   setUploadError(null);
                 }}
                 rows={11}
@@ -389,7 +399,7 @@ export const JobDescriptionAnalytics: React.FC = () => {
                 onClick={() => loadSample(SAMPLE_JOB_DESCRIPTIONS[0])}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-all"
               >
-                Load Sample Job Description
+                Load Demo Job Description (Not Saved)
               </button>
             </div>
           )}

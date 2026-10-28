@@ -21,9 +21,10 @@ export function parseResumeText(rawText: string, fileName?: string): CandidatePr
   const phoneMatch = rawText.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
   const phone = phoneMatch ? phoneMatch[0] : "";
 
-  // 3. Extract candidate name from top lines or derive from filename/email
+  // 3. Extract a candidate name only when it appears in resume text
   let name = "";
-  for (const line of lines.slice(0, 5)) {
+  for (const candidateLine of lines.slice(0, 5)) {
+    const line = candidateLine.replace(/^(?:candidate\s+name|full\s+name|name)\s*:\s*/i, "").trim();
     if (
       line.length > 2 &&
       line.length < 40 &&
@@ -39,32 +40,7 @@ export function parseResumeText(rawText: string, fileName?: string): CandidatePr
     }
   }
 
-  if (!name) {
-    if (email) {
-      const emailPrefix = email.split("@")[0].replace(/[._-]/g, " ").trim();
-      const genericPrefixes = ["contact", "info", "hello", "admin", "support", "office", "jobs", "apply", "mail"];
-      if (emailPrefix.includes(" ") || (!genericPrefixes.includes(emailPrefix.toLowerCase()) && emailPrefix.length > 3)) {
-        name = emailPrefix
-          .split(" ")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" ");
-      }
-    }
-    if (!name && fileName) {
-      const base = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-      name = base
-        .replace(/resume|cv|profile/gi, "")
-        .trim()
-        .split(" ")
-        .filter(Boolean)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-    }
-  }
-
-  if (!name) {
-    name = "Candidate";
-  }
+  // If no readable name is present, preserve an empty value instead of inventing one.
 
   // 4. Extract professional summary
   let summary = "";
@@ -140,7 +116,7 @@ export function parseResumeText(rawText: string, fileName?: string): CandidatePr
           experience.push(currentRole);
         }
         currentRole = {
-          title: "Software Professional",
+          title: "",
           company: "",
           duration: line,
           description: "",
@@ -163,7 +139,7 @@ export function parseResumeText(rawText: string, fileName?: string): CandidatePr
 
   return {
     source_type: "candidate",
-    source_file: fileName || "uploaded_resume.pdf",
+    source_file: fileName || "",
     name,
     email,
     phone,
@@ -186,21 +162,10 @@ export function parseJDText(rawText: string, fileName?: string): JobDescriptionR
 
   // 1. Detect Company
   let company = "";
-  const companyPattern = /(?:at|for|with|company:)\s+([A-Z][A-Za-z0-9&.\s]{2,25})/i;
+  const companyPattern = /(?:company\s*:\s*|employer\s*:\s*|at\s+|for\s+)([A-Z][A-Za-z0-9&.\s]{2,40}?)(?=\s+(?:is|seeks|seeking|looking|role|position|job|to|for|with|requires|needs)\b|[.,\r\n]|$)/i;
   const companyMatch = rawText.match(companyPattern);
-  if (companyMatch) {
-    company = companyMatch[1].trim();
-  } else if (fileName) {
-    const base = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-    const parts = base.split(" ");
-    if (parts.length > 0 && parts[0].length > 2) {
-      company = parts[0];
-    }
-  }
-
-  if (!company) {
-    company = lines.length > 0 && lines[0].length < 40 ? lines[0] : "Target Employer";
-  }
+  if (companyMatch) company = companyMatch[1].trim();
+  // Do not infer an employer from a filename or an arbitrary first line.
 
   // 2. Detect Role
   let role = "";
@@ -217,9 +182,7 @@ export function parseJDText(rawText: string, fileName?: string): JobDescriptionR
     }
   }
 
-  if (!role) {
-    role = "Software Engineer";
-  }
+  // Keep the role empty when the document does not state a recognizable title.
 
   // 3. Extract Skills with Category & Evidence
   const lowerText = rawText.toLowerCase();
@@ -267,13 +230,16 @@ export function parseJDText(rawText: string, fileName?: string): JobDescriptionR
 
   return {
     source_type: "jd",
-    source_file: fileName || "job_description.pdf",
+    source_file: fileName || "",
     company,
     role,
     skills: extractedSkills,
     required_skills: requiredSkills,
     preferred_skills: preferredSkills,
-    experience_years_required: 2,
+    experience_years_required: (() => {
+      const yearsMatch = rawText.match(/(\d{1,2})\s*\+?\s+years?\s+(?:of\s+)?(?:relevant\s+)?experience/i);
+      return yearsMatch ? Number(yearsMatch[1]) : undefined;
+    })(),
     description_summary: lines.slice(0, 3).join(" "),
   };
 }
