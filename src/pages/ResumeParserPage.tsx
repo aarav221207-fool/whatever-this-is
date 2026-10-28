@@ -154,16 +154,14 @@ export const ResumeParserPage: React.FC = () => {
   };
 
   const handleOpenInBuilder = () => {
-    if (candidate) {
-      saveStoredProfile(candidate);
-    }
+    if (candidate && !sampleMode) saveStoredProfile(candidate);
+    if (sampleMode) toast.info("Demo preview was not saved. Upload a real resume before editing a persistent profile.");
     navigate("/profile-builder");
   };
 
   const handleGoToTalentCheck = () => {
-    if (candidate) {
-      saveStoredProfile(candidate);
-    }
+    if (candidate && !sampleMode) saveStoredProfile(candidate);
+    if (sampleMode) toast.info("Demo preview was not saved. Upload a real resume before using live talent checks.");
     navigate("/talent-check");
   };
 
