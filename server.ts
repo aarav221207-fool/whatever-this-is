@@ -12,6 +12,21 @@ import {
   extractTextFromBuffer,
   DocumentExtractionError,
 } from "./src/server/documentExtractor";
+import {
+  getMaskedConfig,
+  updateAIConfig,
+  testAIConnection,
+  getModelList,
+  executeAIGeneration,
+} from "./src/server/aiProviderService";
+import {
+  performFullDataAudit,
+  registerUploadedRecord,
+} from "./src/server/dataValidator";
+import {
+  runPlacementAIPipeline,
+  getPipelineHistory,
+} from "./src/server/aiPipelineEngine";
 
 dotenv.config();
 
@@ -20,6 +35,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const serverStartTime = Date.now();
 
 // Multer memory storage for in-memory document parsing (10 MB max)
 const upload = multer({
@@ -32,16 +48,6 @@ const upload = multer({
 // Body parsers
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
-
-// Initialize Gemini if key exists
-let aiClient: GoogleGenAI | null = null;
-if (process.env.GEMINI_API_KEY) {
-  try {
-    aiClient = new GoogleGenAI({});
-  } catch (err) {
-    console.warn("Failed to initialize GoogleGenAI client:", err);
-  }
-}
 
 // Health check
 app.get("/api/health", (_req: Request, res: Response) => {
@@ -77,6 +83,14 @@ app.post(
         req.file.originalname,
         req.file.mimetype
       );
+
+      // Track uploaded document in audit registry for data separation & quality tracking
+      registerUploadedRecord({
+        id: `UPL-${Date.now()}`,
+        fileName: extracted.file_name,
+        type: extracted.file_name.toLowerCase().includes("resume") ? "resume" : "job_description",
+        charCount: extracted.char_count,
+      });
 
       res.json({
         success: true,
@@ -242,29 +256,177 @@ app.post("/api/v1/skill-matching/match", async (req: Request, res: Response): Pr
     const adaptedJD = adaptJDResponse(jd);
     const matchResult = matchCandidateToJD(adaptedCandidate, adaptedJD);
 
-    // Optional AI enhancement if Gemini is configured
-    if (aiClient && req.body.use_ai) {
+    // Optional AI enhancement using active configured provider (Gemini or OpenAI)
+    if (req.body.use_ai) {
       try {
-        const response = await aiClient.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: `You are an elite technical talent assessor. Review this candidate skill match and provide a 2-3 sentence strategic interview preparation tip:
-Candidate: ${adaptedCandidate.name} (${adaptedCandidate.summary})
+        const aiPrompt = `Candidate: ${adaptedCandidate.name} (${adaptedCandidate.summary})
 Target Role: ${adaptedJD.role} at ${adaptedJD.company}
 Match Score: ${matchResult.overall_match_score}%
 Missing Requirements: ${matchResult.missing_required_skills.join(", ") || "None"}
-Matched Skills: ${matchResult.matched_skills.map((s) => s.skill_name).join(", ")}`,
+Matched Skills: ${matchResult.matched_skills.map((s) => s.skill_name).join(", ")}`;
+
+        const analysis = await executeAIGeneration({
+          prompt: aiPrompt,
+          systemInstruction:
+            "You are an elite technical talent assessor for JSS University Noida Placement Cell. Provide a concise 2-3 sentence strategic interview preparation tip focusing on high-probability technical questions for this specific stack.",
         });
-        if (response.text) {
-          matchResult.ai_analysis = response.text;
-        }
-      } catch (aiErr) {
-        console.warn("Gemini call skipped or failed, using deterministic output:", aiErr);
+
+        matchResult.ai_analysis = analysis.trim();
+      } catch (aiErr: any) {
+        console.warn("AI enhancement skipped or failed, using deterministic output:", aiErr.message);
       }
     }
 
     res.json(matchResult);
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Failed to perform skill matching" });
+  }
+});
+
+// ==========================================
+// AI Configuration & Testing Endpoints
+// ==========================================
+app.get("/api/v1/ai/config", (_req: Request, res: Response): void => {
+  try {
+    const masked = getMaskedConfig();
+    res.json(masked);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to retrieve AI configuration" });
+  }
+});
+
+app.post("/api/v1/ai/config", (req: Request, res: Response): void => {
+  try {
+    const { provider, apiKey, baseURL, model } = req.body;
+    const updated = updateAIConfig({ provider, apiKey, baseURL, model });
+    res.json({ success: true, config: updated });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || "Failed to update AI configuration" });
+  }
+});
+
+app.post("/api/v1/ai/test-connection", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await testAIConnection();
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      error: err.message || "Connection test failed",
+    });
+  }
+});
+
+app.get("/api/v1/ai/models", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const modelList = await getModelList();
+    res.json(modelList);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch model catalog" });
+  }
+});
+
+// ==========================================
+// Data Quality & Validation Endpoints
+// ==========================================
+app.get("/api/v1/data/validation-report", (_req: Request, res: Response): void => {
+  try {
+    const report = performFullDataAudit();
+    res.json(report);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to perform data quality audit" });
+  }
+});
+
+app.post("/api/v1/data/revalidate", (_req: Request, res: Response): void => {
+  try {
+    const report = performFullDataAudit();
+    res.json({ success: true, message: "Data validation completed", report });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to revalidate data" });
+  }
+});
+
+// ==========================================
+// AI Placement Intelligence Pipeline Endpoints
+// ==========================================
+app.post("/api/v1/pipeline/run", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { targetCompany, roleTitle, rawText, analysisType } = req.body;
+    const result = await runPlacementAIPipeline({
+      targetCompany,
+      roleTitle,
+      rawText,
+      analysisType,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Placement pipeline execution failed" });
+  }
+});
+
+app.get("/api/v1/pipeline/history", (_req: Request, res: Response): void => {
+  try {
+    const history = getPipelineHistory();
+    res.json({ runs: history, total: history.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to retrieve pipeline history" });
+  }
+});
+
+// ==========================================
+// System Observability & Health Dashboard Endpoint
+// ==========================================
+app.get("/api/v1/system/status", (_req: Request, res: Response): void => {
+  try {
+    const uptimeSec = Math.floor((Date.now() - serverStartTime) / 1000);
+    const mem = process.memoryUsage();
+    const aiConfig = getMaskedConfig();
+    const audit = performFullDataAudit();
+
+    res.json({
+      status: "operational",
+      server_name: "JSS University Noida Placement Gateway",
+      environment: process.env.NODE_ENV || "development",
+      uptime_seconds: uptimeSec,
+      timestamp: new Date().toISOString(),
+      memory: {
+        rss_mb: Math.round(mem.rss / 1024 / 1024),
+        heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
+        heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024),
+      },
+      ai_provider: {
+        provider: aiConfig.provider,
+        model: aiConfig.model,
+        is_configured: aiConfig.isKeyConfigured,
+        masked_key: aiConfig.maskedKey,
+      },
+      data_validation: {
+        overall_score: audit.overallScore,
+        total_records_audited: audit.totalAudited,
+        valid_records: audit.totalValid,
+        warnings: audit.totalWarnings,
+        errors: audit.totalErrors,
+      },
+      document_extractor: {
+        supported_formats: [".pdf", ".docx", ".txt", ".json", ".csv"],
+        max_upload_size_bytes: 10 * 1024 * 1024,
+        status: "active",
+      },
+      endpoints: [
+        { path: "/api/health", method: "GET", status: "200 OK" },
+        { path: "/api/v1/documents/extract", method: "POST", status: "Active (Multer 10MB)" },
+        { path: "/api/v1/jd-analytics/analyze", method: "POST", status: "Active" },
+        { path: "/api/v1/resume-parser/parse", method: "POST", status: "Active" },
+        { path: "/api/v1/talent-check/evaluate", method: "POST", status: "Active" },
+        { path: "/api/v1/skill-matching/match", method: "POST", status: "Active" },
+        { path: "/api/v1/data/validation-report", method: "GET", status: "Active" },
+        { path: "/api/v1/pipeline/run", method: "POST", status: "Active" },
+        { path: "/api/v1/ai/config", method: "GET/POST", status: "Active" },
+      ],
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to compile system health metrics" });
   }
 });
 

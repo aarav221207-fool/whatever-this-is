@@ -13,6 +13,9 @@ import {
   GitCompare,
   ArrowRight,
   Sparkles,
+  ShieldAlert,
+  Cpu,
+  Activity,
 } from "lucide-react";
 import { CompanyCard } from "../components/common/CompanyCard";
 import { useCompanies } from "../lib/companyApi";
@@ -303,6 +306,81 @@ export const Index: React.FC = () => {
                 <span className="text-[10px] font-bold text-indigo-600 mt-2 flex items-center gap-1">
                   Match Profile <ArrowRight className="w-3 h-3" />
                 </span>
+              </Link>
+            </div>
+
+            {/* AI & Placement Governance Quick Actions */}
+            <div className="mt-4 pt-4 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-4 gap-3 text-left">
+              <Link
+                to="/ai-pipeline"
+                className="p-3 bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-300 rounded-xl transition-all group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-purple-100 text-purple-700">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 group-hover:text-purple-700">
+                      AI Placement Pipeline
+                    </h5>
+                    <p className="text-[10px] text-slate-500">8-Stage AI Inference</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600 transition-colors" />
+              </Link>
+
+              <Link
+                to="/data-validation"
+                className="p-3 bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-300 rounded-xl transition-all group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 group-hover:text-indigo-700">
+                      Data Quality Audit
+                    </h5>
+                    <p className="text-[10px] text-slate-500">Seed & Upload Rules</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+              </Link>
+
+              <Link
+                to="/ai-settings"
+                className="p-3 bg-white hover:bg-blue-50/50 border border-slate-200 hover:border-blue-300 rounded-xl transition-all group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-blue-100 text-blue-700">
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 group-hover:text-blue-700">
+                      AI & LLM Settings
+                    </h5>
+                    <p className="text-[10px] text-slate-500">Gemini & OpenAI Keys</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+              </Link>
+
+              <Link
+                to="/system-health"
+                className="p-3 bg-white hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900 group-hover:text-emerald-700">
+                      System Health
+                    </h5>
+                    <p className="text-[10px] text-slate-500">Telemetry & Gateway</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
               </Link>
             </div>
           </div>
