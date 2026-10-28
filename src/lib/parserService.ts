@@ -161,7 +161,7 @@ export function parseJDText(rawText: string, fileName?: string): JobDescriptionR
 
   // 1. Detect Company
   let company = "";
-  const companyPattern = /(?:company\\s*:\\s*|employer\\s*:\\s*|at\\s+|for\\s+)([A-Z][A-Za-z0-9&.\\s]{2,40}?)(?=\\s+(?:is|seeks|seeking|looking|role|position|job|to|for|with|requires|needs)\\b|[.,\\r\\n]|$)/i;
+  const companyPattern = /(?:company\s*:\s*|employer\s*:\s*|at\s+|for\s+)([A-Z][A-Za-z0-9&.\s]{2,40}?)(?=\s+(?:is|seeks|seeking|looking|role|position|job|to|for|with|requires|needs)\b|[.,\r\n]|$)/i;
   const companyMatch = rawText.match(companyPattern);
   if (companyMatch) company = companyMatch[1].trim();
   // Do not infer an employer from a filename or an arbitrary first line.
@@ -236,7 +236,7 @@ export function parseJDText(rawText: string, fileName?: string): JobDescriptionR
     required_skills: requiredSkills,
     preferred_skills: preferredSkills,
     experience_years_required: (() => {
-      const yearsMatch = rawText.match(/(\\d{1,2})\\s*\\+?\\s+years?\\s+(?:of\\s+)?(?:relevant\\s+)?experience/i);
+      const yearsMatch = rawText.match(/(\d{1,2})\s*\+?\s+years?\s+(?:of\s+)?(?:relevant\s+)?experience/i);
       return yearsMatch ? Number(yearsMatch[1]) : undefined;
     })(),
     description_summary: lines.slice(0, 3).join(" "),
