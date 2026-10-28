@@ -18,15 +18,28 @@ export const CompanyIntelligence: React.FC = () => {
   const { selectedCompanyId, selectedSummary, setSelectedCompany } = useCompany();
   const { data: allCompanies = [] } = useCompanies();
 
-  // Determine active company ID: prioritize URL parameter, then context
-  const activeId = urlId && urlId > 0 ? urlId : selectedCompanyId;
+  // A URL/localStorage selection can outlive the company record it referred to.
+  // Validate it against the live company list before querying a profile. If it is
+  // stale (for example, company ID 1002 no longer exists), select a real record
+  // instead of leaving the user on a misleading "Company Profile Not Found" page.
+  const urlCompanyExists = typeof urlId === "number" && urlId > 0 &&
+    allCompanies.some((company) => company.id === urlId);
+  const storedCompanyExists = typeof selectedCompanyId === "number" &&
+    allCompanies.some((company) => company.id === selectedCompanyId);
+  const activeId = urlCompanyExists
+    ? urlId
+    : storedCompanyExists
+      ? selectedCompanyId
+      : allCompanies[0]?.id ?? null;
 
-  // If no company is selected yet, but real database companies are available, auto-select the first one
   useEffect(() => {
-    if (!activeId && allCompanies.length > 0) {
-      setSelectedCompany(allCompanies[0]);
+    if (activeId !== null) {
+      const activeCompany = allCompanies.find((company) => company.id === activeId);
+      if (activeCompany && selectedCompanyId !== activeCompany.id) {
+        setSelectedCompany(activeCompany);
+      }
     }
-  }, [activeId, allCompanies, setSelectedCompany]);
+  }, [activeId, allCompanies, selectedCompanyId, setSelectedCompany]);
 
   const {
     data: selectedProfile,
