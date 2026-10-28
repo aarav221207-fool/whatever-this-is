@@ -46,13 +46,13 @@ export const ResumeParserPage: React.FC = () => {
     try {
       const data = await parseResume(inputText, fileName || "pasted_resume.txt");
       setCandidate(data);
-      saveStoredProfile(data);
       if (sampleMode) {
         setRecommendations([]);
         setRecommendationsLoaded(false);
         toast.info("Demo preview only. Sample profiles are never written to Supabase or used for real recommendations.");
         return;
       }
+      saveStoredProfile(data);
       const jobRecommendations = await saveStudentResume(data);
       setRecommendations(jobRecommendations);
       setRecommendationsLoaded(true);
