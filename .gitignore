@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+data/.ai_config.json
+data/pipeline_history.json
+data/uploaded_records.json
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

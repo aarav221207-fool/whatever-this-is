@@ -170,7 +170,7 @@ export const SkillIntelligence: React.FC = () => {
                     {error instanceof Error ? error.message : "Failed to load skill requirements from database."}
                   </p>
                   <p className="text-[11px] text-red-700/80 mt-1.5">
-                    Verify that tables <code>company_skill_levels</code>, <code>skill_set_master</code>, <code>proficiency_levels</code>, and <code>skill_set_topics</code> exist and have RLS SELECT enabled.
+                    If skill requirements are expected, ensure the skill tables exist and their SELECT policies allow access. This schema export does not confirm those tables.
                   </p>
                 </div>
               </div>
@@ -270,7 +270,7 @@ export const SkillIntelligence: React.FC = () => {
               No Skill Benchmarks Registered
             </h3>
             <p className="text-xs text-slate-500 mb-6 max-w-sm mx-auto">
-              No skill records were returned from <code>public.company_skill_levels</code> for company ID {activeId || "unknown"}.
+              No skill requirement records are available for company ID {activeId || "unknown"}. This view only displays skills explicitly stored in the database; it does not invent hiring requirements.
             </p>
             <Link
               to="/"

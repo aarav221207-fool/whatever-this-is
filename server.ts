@@ -3,49 +3,28 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import multer from "multer";
+import { GoogleGenAI } from "@google/genai";
 import { parseResumeText, parseJDText } from "./src/lib/parserService";
-import { evaluateTalentReadiness, COMPANY_BENCHMARKS } from "./src/lib/talentCheckEngine";
 import { matchCandidateToJD } from "./src/lib/skillMatchingEngine";
 import { adaptResumeResponse, adaptJDResponse } from "./src/lib/radixAdapters";
 import {
   extractTextFromBuffer,
   DocumentExtractionError,
-  ExtractedDocument,
 } from "./src/server/documentExtractor";
-import {
-  getMaskedConfig,
-  updateAIConfig,
-  replaceAIKey,
-  removeAIConfig,
-  testAIConnection,
-  getModelList,
-  executeAIGeneration,
-} from "./src/server/aiProviderService";
-import {
-  performFullDataAudit,
-  registerUploadedRecord,
-  getUploadedRecords,
-} from "./src/server/dataValidator";
-import {
-  runPlacementAIPipeline,
-  getPipelineHistory,
-} from "./src/server/aiPipelineEngine";
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-const HOST = "0.0.0.0";
-const serverStartTime = Date.now();
+export const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Multer in-memory storage (10 MB max)
+// Netlify Functions have a small request payload ceiling; keep uploads safely below it (4 MB).
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 4 * 1024 * 1024, // 4MB
   },
 });
 
@@ -53,76 +32,70 @@ const upload = multer({
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
-// -------------------------------------------------------------
-// Health Check Probe
-// -------------------------------------------------------------
+// Initialize Gemini if key exists
+let aiClient: GoogleGenAI | null = null;
+if (process.env.GEMINI_API_KEY) {
+  try {
+    aiClient = new GoogleGenAI({});
+  } catch (err) {
+    console.warn("Failed to initialize GoogleGenAI client:", err);
+  }
+}
+
+// Health check
 app.get("/api/health", (_req: Request, res: Response) => {
-  const aiConfig = getMaskedConfig();
   res.json({
     status: "ok",
     service: "RADIX Talent Match Gateway",
     timestamp: new Date().toISOString(),
-    ai_configured: aiConfig.isKeyConfigured,
-    ai_provider: aiConfig.provider,
-    supported_formats: [".pdf", ".docx", ".txt", ".csv", ".xlsx", ".json"],
-    max_file_size_bytes: 10 * 1024 * 1024,
+    gemini_enabled: !!process.env.GEMINI_API_KEY,
+    supported_formats: [".pdf", ".docx", ".txt"],
+    max_file_size_bytes: 4 * 1024 * 1024,
   });
 });
 
-// -------------------------------------------------------------
-// Shared Reliable File Processing Endpoint (Priority 1)
-// -------------------------------------------------------------
+/**
+ * Common document extraction endpoint:
+ * Accepts multipart/form-data with 'file' field (.pdf, .docx, .txt)
+ * Returns extracted text, character count, and file type
+ */
 app.post(
-  ["/api/v1/documents/extract", "/api/v1/documents/process"],
+  "/api/v1/documents/extract",
   upload.single("file"),
   async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.file) {
         res.status(400).json({
-          error: "No file uploaded. Please upload a .pdf, .docx, .txt, .csv, .xlsx, or .json file in the 'file' field.",
+          error: "No file uploaded. Please upload a .pdf, .docx, or .txt file in the 'file' field.",
         });
         return;
       }
 
-      const extracted: ExtractedDocument = await extractTextFromBuffer(
+      const extracted = await extractTextFromBuffer(
         req.file.buffer,
         req.file.originalname,
         req.file.mimetype
       );
 
-      // Register uploaded document in quality validation audit registry
-      const registered = registerUploadedRecord(extracted);
-
       res.json({
         success: true,
+        text: extracted.text,
         file_name: extracted.file_name,
         file_type: extracted.file_type,
-        mime_type: extracted.mime_type,
         char_count: extracted.char_count,
         word_count: extracted.word_count,
-        text: extracted.text,
-        structured_data: extracted.structured_data,
-        metadata: extracted.metadata,
-        audit_registration: {
-          id: registered.id,
-          compliance_score: registered.complianceScore,
-          warnings: registered.customFindings?.filter((f) => f.severity === "warning").length || 0,
-          errors: registered.customFindings?.filter((f) => f.severity === "error").length || 0,
-        },
       });
     } catch (err: any) {
       if (err instanceof DocumentExtractionError) {
         res.status(err.statusCode).json({ error: err.message });
       } else {
-        res.status(500).json({ error: err.message || "Failed to process document" });
+        res.status(500).json({ error: err.message || "Failed to extract document text" });
       }
     }
   }
 );
 
-// -------------------------------------------------------------
-// Role 1: JD Analytics API
-// -------------------------------------------------------------
+// Role 1: JD Analytics API (supports JSON body or multipart file upload)
 app.post(
   "/api/v1/jd-analytics/analyze",
   upload.single("file"),
@@ -179,9 +152,7 @@ app.post("/api/v1/jd-analytics/validate", (req: Request, res: Response): void =>
   }
 });
 
-// -------------------------------------------------------------
-// Role 2: Resume Parser API
-// -------------------------------------------------------------
+// Role 2: Resume Parser API (supports JSON body or multipart file upload)
 app.post(
   "/api/v1/resume-parser/parse",
   upload.single("file"),
@@ -238,34 +209,28 @@ app.post("/api/v1/resume-parser/validate", (req: Request, res: Response): void =
   }
 });
 
-// -------------------------------------------------------------
-// Role 4: Talent Check API
-// -------------------------------------------------------------
+// Role 4: Talent Check API. No company-specific scores are returned until
+// approved hiring benchmarks are stored in Supabase; bundled fixtures are not
+// presented as live institutional criteria.
 app.get("/api/v1/talent-check/companies", (_req: Request, res: Response): void => {
-  res.json({ companies: COMPANY_BENCHMARKS });
+  res.json({
+    companies: [],
+    source: "not_configured",
+    message: "No database-backed company hiring benchmarks are configured. Add approved benchmark records before evaluating placement readiness.",
+  });
 });
 
-app.post("/api/v1/talent-check/evaluate", (req: Request, res: Response): void => {
-  try {
-    const { profile, company_id } = req.body;
-    if (!profile || typeof profile !== "object") {
-      res.status(400).json({ error: "Missing candidate profile object" });
-      return;
-    }
-    const targetCompanyId = typeof company_id === "number" ? company_id : 1;
-    const result = evaluateTalentReadiness(profile, targetCompanyId);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to evaluate talent readiness" });
-  }
+app.post("/api/v1/talent-check/evaluate", (_req: Request, res: Response): void => {
+  res.status(501).json({
+    error: "Company-specific readiness evaluation is unavailable until approved hiring benchmarks are connected to the database.",
+    code: "BENCHMARKS_NOT_CONFIGURED",
+  });
 });
 
-// -------------------------------------------------------------
 // Role 5: Skill Matching API
-// -------------------------------------------------------------
 app.post("/api/v1/skill-matching/match", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { candidate, jd, use_ai } = req.body;
+    const { candidate, jd } = req.body;
     if (!candidate || !jd) {
       res.status(400).json({ error: "Request body must include both 'candidate' and 'jd' objects" });
       return;
@@ -274,23 +239,23 @@ app.post("/api/v1/skill-matching/match", async (req: Request, res: Response): Pr
     const adaptedJD = adaptJDResponse(jd);
     const matchResult = matchCandidateToJD(adaptedCandidate, adaptedJD);
 
-    if (use_ai) {
+    // Optional AI enhancement if Gemini is configured
+    if (aiClient && req.body.use_ai) {
       try {
-        const aiPrompt = `Candidate: ${adaptedCandidate.name} (${adaptedCandidate.summary})
+        const response = await aiClient.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: `You are an elite technical talent assessor. Review this candidate skill match and provide a 2-3 sentence strategic interview preparation tip:
+Candidate: ${adaptedCandidate.name} (${adaptedCandidate.summary})
 Target Role: ${adaptedJD.role} at ${adaptedJD.company}
 Match Score: ${matchResult.overall_match_score}%
 Missing Requirements: ${matchResult.missing_required_skills.join(", ") || "None"}
-Matched Skills: ${matchResult.matched_skills.map((s) => s.skill_name).join(", ")}`;
-
-        const analysis = await executeAIGeneration({
-          prompt: aiPrompt,
-          systemInstruction:
-            "You are a technical recruitment assessor for JSS University Noida Placement Cell. Provide a concise 2-3 sentence strategic interview preparation tip focusing on high-probability technical questions for this stack.",
+Matched Skills: ${matchResult.matched_skills.map((s) => s.skill_name).join(", ")}`,
         });
-
-        matchResult.ai_analysis = analysis.trim();
-      } catch (aiErr: any) {
-        console.warn("[Skill Match] AI advisory note failed:", aiErr.message);
+        if (response.text) {
+          matchResult.ai_analysis = response.text;
+        }
+      } catch (aiErr) {
+        console.warn("Gemini call skipped or failed, using deterministic output:", aiErr);
       }
     }
 
@@ -300,229 +265,11 @@ Matched Skills: ${matchResult.matched_skills.map((s) => s.skill_name).join(", ")
   }
 });
 
-// ==========================================
-// AI Provider Configuration & Management Endpoints (Priority 2)
-// ==========================================
-app.get("/api/v1/ai/config", (_req: Request, res: Response): void => {
-  try {
-    const masked = getMaskedConfig();
-    res.json(masked);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to retrieve AI configuration" });
-  }
-});
-
-app.post("/api/v1/ai/config", (req: Request, res: Response): void => {
-  try {
-    const { provider, apiKey, baseURL, model } = req.body;
-    const updated = updateAIConfig({ provider, apiKey, baseURL, model });
-    res.json({ success: true, config: updated });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to update AI configuration" });
-  }
-});
-
-app.post("/api/v1/ai/replace-key", (req: Request, res: Response): void => {
-  try {
-    const { apiKey } = req.body;
-    if (!apiKey || typeof apiKey !== "string") {
-      res.status(400).json({ error: "Missing or invalid 'apiKey' parameter" });
-      return;
-    }
-    const updated = replaceAIKey(apiKey);
-    res.json({ success: true, message: "API Key replaced and securely stored.", config: updated });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || "Failed to replace API Key" });
-  }
-});
-
-app.post("/api/v1/ai/remove-config", (_req: Request, res: Response): void => {
-  try {
-    const updated = removeAIConfig();
-    res.json({ success: true, message: "AI Configuration and credentials cleared.", config: updated });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to remove AI configuration" });
-  }
-});
-
-app.post("/api/v1/ai/test-connection", async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const result = await testAIConnection();
-    res.json(result);
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      error: err.message || "Connection test failed",
-    });
-  }
-});
-
-app.get("/api/v1/ai/models", async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const modelList = await getModelList();
-    res.json(modelList);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch model catalog" });
-  }
-});
-
-// ==========================================
-// Data Quality & Validation Registry Endpoints (Priority 4)
-// ==========================================
-app.get("/api/v1/data/validation-report", (_req: Request, res: Response): void => {
-  try {
-    const report = performFullDataAudit();
-    res.json(report);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to perform data quality audit" });
-  }
-});
-
-app.post("/api/v1/data/revalidate", (_req: Request, res: Response): void => {
-  try {
-    const report = performFullDataAudit();
-    res.json({ success: true, message: "Data validation completed", report });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to revalidate data" });
-  }
-});
-
-app.post(
-  "/api/v1/data/validate-file",
-  upload.single("file"),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      if (!req.file) {
-        res.status(400).json({ error: "No file uploaded for validation audit." });
-        return;
-      }
-
-      const extracted = await extractTextFromBuffer(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype
-      );
-
-      const registered = registerUploadedRecord(extracted);
-      const overallReport = performFullDataAudit();
-
-      res.json({
-        success: true,
-        file: registered,
-        overallReport,
-      });
-    } catch (err: any) {
-      if (err instanceof DocumentExtractionError) {
-        res.status(err.statusCode).json({ error: err.message });
-      } else {
-        res.status(500).json({ error: err.message || "File validation failed" });
-      }
-    }
-  }
-);
-
-app.get("/api/v1/data/uploads", (_req: Request, res: Response): void => {
-  try {
-    const records = getUploadedRecords();
-    res.json({ uploads: records, total: records.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch uploaded records" });
-  }
-});
-
-// ==========================================
-// AI Placement Intelligence Pipeline Endpoints (Priority 3)
-// ==========================================
-app.post("/api/v1/pipeline/run", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { targetCompany, roleTitle, rawText, analysisType, allowFallback } = req.body;
-    const result = await runPlacementAIPipeline({
-      targetCompany,
-      roleTitle,
-      rawText,
-      analysisType,
-      allowFallback,
-    });
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Placement pipeline execution failed" });
-  }
-});
-
-app.get("/api/v1/pipeline/history", (_req: Request, res: Response): void => {
-  try {
-    const history = getPipelineHistory();
-    res.json({ runs: history, total: history.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to retrieve pipeline history" });
-  }
-});
-
-// ==========================================
-// System Observability & Telemetry Endpoints
-// ==========================================
-app.get("/api/v1/system/status", (_req: Request, res: Response): void => {
-  try {
-    const uptimeSec = Math.floor((Date.now() - serverStartTime) / 1000);
-    const mem = process.memoryUsage();
-    const aiConfig = getMaskedConfig();
-    const audit = performFullDataAudit();
-
-    res.json({
-      status: "operational",
-      server_name: "JSS University Noida Placement Gateway",
-      environment: process.env.NODE_ENV || "development",
-      uptime_seconds: uptimeSec,
-      timestamp: new Date().toISOString(),
-      memory: {
-        rss_mb: Math.round(mem.rss / 1024 / 1024),
-        heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
-        heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024),
-      },
-      ai_provider: {
-        provider: aiConfig.provider,
-        model: aiConfig.model,
-        is_configured: aiConfig.isKeyConfigured,
-        masked_key: aiConfig.maskedKey,
-        storage_type: aiConfig.storageType,
-      },
-      data_validation: {
-        overall_score: audit.overallScore,
-        total_records_audited: audit.totalAudited,
-        valid_records: audit.totalValid,
-        warnings: audit.totalWarnings,
-        errors: audit.totalErrors,
-      },
-      document_extractor: {
-        supported_formats: ["CSV", "XLSX", "JSON", "TXT", "PDF", "DOCX"],
-        max_upload_size_bytes: 10 * 1024 * 1024,
-        status: "active",
-      },
-      endpoints: [
-        { path: "/api/health", method: "GET", status: "200 OK" },
-        { path: "/api/v1/documents/process", method: "POST", status: "Active (CSV/XLSX/JSON/PDF/DOCX/TXT)" },
-        { path: "/api/v1/jd-analytics/analyze", method: "POST", status: "Active" },
-        { path: "/api/v1/resume-parser/parse", method: "POST", status: "Active" },
-        { path: "/api/v1/talent-check/evaluate", method: "POST", status: "Active" },
-        { path: "/api/v1/skill-matching/match", method: "POST", status: "Active" },
-        { path: "/api/v1/data/validation-report", method: "GET", status: "Active" },
-        { path: "/api/v1/data/validate-file", method: "POST", status: "Active" },
-        { path: "/api/v1/pipeline/run", method: "POST", status: "Active" },
-        { path: "/api/v1/ai/config", method: "GET/POST", status: "Active" },
-        { path: "/api/v1/ai/replace-key", method: "POST", status: "Active" },
-        { path: "/api/v1/ai/remove-config", method: "POST", status: "Active" },
-      ],
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to compile system health metrics" });
-  }
-});
-
-// Error handling middleware for Multer
+// Error handling middleware for Multer (e.g. file size limit exceeded)
 app.use((err: any, _req: Request, res: Response, next: NextFunction): void => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      res.status(413).json({ error: "File size exceeds the maximum limit of 10 MB." });
+      res.status(413).json({ error: "File size exceeds the 4 MB limit." });
       return;
     }
     res.status(400).json({ error: `Upload error: ${err.message}` });
@@ -538,7 +285,7 @@ async function startServer() {
   if (!isProd) {
     const { createServer } = await import("vite");
     const vite = await createServer({
-      server: { middlewareMode: true, allowedHosts: true },
+      server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -550,9 +297,13 @@ async function startServer() {
     });
   }
 
-  app.listen(Number(PORT), HOST, () => {
-    console.log(`RADIX Talent Match server running on http://${HOST}:${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`RADIX Talent Match server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+// When imported by a Netlify Function, export the Express app without starting
+// a second listener or mounting the Vite development server.
+if (!process.env.NETLIFY) {
+  startServer();
+}

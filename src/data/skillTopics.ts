@@ -161,22 +161,3 @@ export const SKILL_TOPICS_MAP: Record<number, SkillTopic[]> = {
     { level_number: 10, topic: "Fine-tuning fundamentals (LoRA, QLoRA) vs in-context learning deployment trade-offs" }
   ]
 };
-
-export const SKILL_TOPICS = Object.entries(SKILL_TOPICS_MAP).flatMap(([skillId, topics]) =>
-  topics.map((t) => ({
-    topic_id: `TOPIC-${skillId}-${t.level_number}`,
-    skill_set_id: Number(skillId),
-    level_number: t.level_number,
-    topic_name: t.topic,
-    bloom_level: (t.level_number <= 2
-      ? "CU"
-      : t.level_number <= 4
-      ? "AP"
-      : t.level_number <= 6
-      ? "AS"
-      : t.level_number <= 8
-      ? "EV"
-      : "CR") as "CU" | "AP" | "AS" | "EV" | "CR",
-  }))
-);
-

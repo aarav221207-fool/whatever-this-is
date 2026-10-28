@@ -6,7 +6,6 @@ import {
   SkillMatchResult,
 } from "../types/radix";
 import { parseResumeText, parseJDText } from "./parserService";
-import { evaluateTalentReadiness } from "./talentCheckEngine";
 import { matchCandidateToJD } from "./skillMatchingEngine";
 
 export interface DocumentExtractResponse {
@@ -15,10 +14,7 @@ export interface DocumentExtractResponse {
   file_name: string;
   char_count: number;
   word_count: number;
-  file_type: "pdf" | "docx" | "txt" | "csv" | "xlsx" | "json";
-  mime_type?: string;
-  structured_data?: any;
-  metadata?: any;
+  file_type: "pdf" | "docx" | "txt";
 }
 
 /**
@@ -140,24 +136,19 @@ export async function parseResumeFile(file: File): Promise<CandidateProfile> {
 }
 
 export async function evaluateTalent(profile: CandidateProfile, companyId: number): Promise<TalentCheckResult> {
-  try {
-    const res = await fetch("/api/v1/talent-check/evaluate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profile, company_id: companyId }),
-    });
+  const res = await fetch("/api/v1/talent-check/evaluate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile, company_id: companyId }),
+  });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || `Talent Check error (HTTP ${res.status})`);
-    }
-    return data;
-  } catch (err: any) {
-    if (err.message && err.message.includes("Talent Check error")) {
-      throw err;
-    }
-    return evaluateTalentReadiness(profile, companyId);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // Do not silently fall back to bundled example benchmarks: that would make
+    // a demo score look like a verified employer-specific placement prediction.
+    throw new Error(data.error || `Talent Check is unavailable (HTTP ${res.status})`);
   }
+  return data;
 }
 
 export async function matchSkills(

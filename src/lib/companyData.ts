@@ -9,7 +9,7 @@ export interface CompanySummary {
   short_name: string;
   logo_url: string;
   category: string;
-  company_type: "Super Dream" | "Dream" | "Standard" | "Regular";
+  company_type: "Super Dream" | "Dream" | "Standard" | "Regular" | "Unclassified";
   incorporation_year: number | string;
   employee_size: string;
   headquarters_address: string;
@@ -347,25 +347,25 @@ export function isNullish(val: any): boolean {
 // Normalizer: Company Summary
 export function normalizeCompanySummary(short_json: any, id = 1): CompanySummary {
   const data = asRecord(short_json);
-  const rawType = asString(data.company_type, "Dream");
-  let validCategory: "Super Dream" | "Dream" | "Standard" | "Regular" = "Dream";
-  if (["Super Dream", "Dream", "Standard", "Regular"].includes(rawType)) {
-    validCategory = rawType as any;
-  }
+  const rawType = asString(data.company_type, "Unclassified");
+  const allowedTypes = ["Super Dream", "Dream", "Standard", "Regular", "Unclassified"] as const;
+  const validCategory = (allowedTypes as readonly string[]).includes(rawType)
+    ? rawType as typeof allowedTypes[number]
+    : "Unclassified";
 
   return {
     id,
     name: asString(data.name, "Company Name"),
     short_name: asString(data.short_name, data.name || "Company"),
     logo_url: asString(data.logo_url, ""),
-    category: asString(data.category, "Technology & Services"),
+    category: asString(data.category, "Not classified"),
     company_type: validCategory,
     incorporation_year: data.incorporation_year || "Not Available",
     employee_size: asString(data.employee_size),
     headquarters_address: asString(data.headquarters_address),
     operating_countries: asString(data.operating_countries),
     office_locations: asString(data.office_locations),
-    yoy_growth_rate: asString(data.yoy_growth_rate, "N/A"),
+    yoy_growth_rate: asString(data.yoy_growth_rate),
     website_url: asString(data.website_url, "")
   };
 }
@@ -380,9 +380,9 @@ export function normalizeCompanyProfile(full_json: any, short_json: any, id = 1)
     // Identity & Overview
     name: asString(full.name || short.name, "Company Name"),
     short_name: asString(full.short_name || short.short_name, "Company"),
-    category: asString(full.category || short.category, "Enterprise"),
+    category: asString(full.category || short.category, "Not classified"),
     incorporation_year: full.incorporation_year || short.incorporation_year || "Not Available",
-    nature_of_company: asString(full.nature_of_company, "Public Enterprise"),
+    nature_of_company: asString(full.nature_of_company),
     overview_text: asString(full.overview_text),
     headquarters_address: asString(full.headquarters_address || short.headquarters_address),
     operating_countries: asString(full.operating_countries || short.operating_countries),

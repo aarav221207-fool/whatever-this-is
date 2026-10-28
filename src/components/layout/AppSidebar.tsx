@@ -11,9 +11,6 @@ import {
   GitCompare,
   Layers,
   LayoutDashboard,
-  ShieldAlert,
-  Cpu,
-  Activity,
 } from "lucide-react";
 import { useCompany } from "../../context/CompanyContext";
 import { CompanyLogo } from "../common/CompanyLogo";
@@ -68,33 +65,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     },
   ];
 
-  const aiGovernanceNavItems = [
-    {
-      name: "AI Placement Pipeline",
-      path: "/ai-pipeline",
-      icon: Sparkles,
-      badge: "8-Stage",
-    },
-    {
-      name: "Data Quality Audit",
-      path: "/data-validation",
-      icon: ShieldAlert,
-      badge: "Audit",
-    },
-    {
-      name: "AI & LLM Settings",
-      path: "/ai-settings",
-      icon: Cpu,
-      badge: "Config",
-    },
-    {
-      name: "System Health",
-      path: "/system-health",
-      icon: Activity,
-      badge: "Live",
-    },
-  ];
-
   const intelligenceNavItems = [
     {
       name: "Company Intelligence",
@@ -105,7 +75,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     {
       name: "Skill Intelligence",
       path: "/company/skills",
-      icon: Layers,
+      icon: Sparkles,
       badge: "Bloom",
     },
   ];
@@ -140,16 +110,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           {!collapsed ? (
             <div className="flex flex-col">
               <span className="text-[10px] font-bold tracking-widest uppercase text-blue-600">
-                JSS UNIVERSITY NOIDA
+                RADIX TALENT MATCH
               </span>
-              <span className="text-xs font-extrabold text-slate-800 tracking-tight leading-tight">
-                Placement Intelligence Hub
+              <span className="text-sm font-extrabold text-slate-800 tracking-tight leading-tight">
+                Placement Hub
               </span>
             </div>
           ) : (
             <div className="w-full flex justify-center">
               <span className="text-xs font-black text-blue-600 bg-blue-50 p-1.5 rounded">
-                JSS
+                RDX
               </span>
             </div>
           )}
@@ -288,51 +258,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                     )}
                     {!collapsed && isActive && (
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    )}
-                  </NavLink>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* AI & Placement Governance Suite */}
-          <div>
-            {!collapsed && (
-              <div className="px-3 pb-1 text-[10px] font-bold tracking-wider uppercase text-purple-600">
-                AI & Quality Governance
-              </div>
-            )}
-            <div className="space-y-0.5">
-              {aiGovernanceNavItems.map((item) => {
-                const isActive = location.pathname.startsWith(item.path);
-                const Icon = item.icon;
-
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleNavClick}
-                    className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 group",
-                      isActive
-                        ? "bg-purple-50 text-purple-700 font-bold"
-                        : "text-[#334155] hover:bg-slate-100 hover:text-slate-900"
-                    )}
-                    title={collapsed ? item.name : undefined}
-                  >
-                    <Icon
-                      className={cn(
-                        "w-4 h-4 shrink-0 transition-colors",
-                        isActive ? "text-purple-600" : "text-slate-500 group-hover:text-slate-700"
-                      )}
-                    />
-                    {!collapsed && (
-                      <div className="flex-1 min-w-0">
-                        <span className="truncate block">{item.name}</span>
-                      </div>
-                    )}
-                    {!collapsed && isActive && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-600" />
                     )}
                   </NavLink>
                 );

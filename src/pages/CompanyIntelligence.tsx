@@ -107,7 +107,7 @@ export const CompanyIntelligence: React.FC = () => {
   const logoUrl = selectedSummary?.logo_url || "";
   const websiteUrl = selectedSummary?.website_url || selectedProfile?.website_url || "";
   const category = selectedSummary?.category || selectedProfile?.category || "Enterprise";
-  const companyType = selectedSummary?.company_type || "Dream";
+  const companyType = selectedSummary?.company_type || "Unclassified";
   const hqAddress = selectedSummary?.headquarters_address || selectedProfile?.headquarters_address || "Global";
 
   return (
@@ -216,7 +216,7 @@ export const CompanyIntelligence: React.FC = () => {
                     {error instanceof Error ? error.message : "Failed to load company profile from Supabase."}
                   </p>
                   <p className="text-[11px] text-red-700/80 mt-1.5">
-                    Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are valid, and table <code>company_json</code> permits SELECT for anonymous users.
+                    Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are valid, and table <code>companies</code> permits SELECT for the configured Supabase role.
                   </p>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export const CompanyIntelligence: React.FC = () => {
               Company Profile Not Found
             </h3>
             <p className="text-xs text-slate-500 mb-6 max-w-sm mx-auto">
-              No profile record was found in table <code>public.company_json</code> for company ID {activeId || "unknown"}.
+              No company record was found in <code>public.companies</code> for company ID {activeId || "unknown"}.
             </p>
             <Link
               to="/"

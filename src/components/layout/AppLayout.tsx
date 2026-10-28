@@ -36,10 +36,6 @@ export const AppLayout: React.FC = () => {
     if (pathname.includes("/profile-builder")) return "Role 3: Profile Builder";
     if (pathname.includes("/talent-check")) return "Role 4: Talent Check";
     if (pathname.includes("/skill-matching")) return "Role 5: Skill Matcher";
-    if (pathname.includes("/ai-pipeline")) return "AI Placement Pipeline";
-    if (pathname.includes("/data-validation")) return "Data Quality & Audit";
-    if (pathname.includes("/ai-settings")) return "AI & LLM Configuration";
-    if (pathname.includes("/system-health")) return "System Health & Observability";
     if (pathname.includes("/skills")) return "Skill Intelligence";
     if (pathname.includes("/intelligence")) return "Company Intelligence";
     return "Placement Intelligence";
@@ -51,11 +47,7 @@ export const AppLayout: React.FC = () => {
     location.pathname.includes("/resume-parser") ||
     location.pathname.includes("/profile-builder") ||
     location.pathname.includes("/talent-check") ||
-    location.pathname.includes("/skill-matching") ||
-    location.pathname.includes("/ai-pipeline") ||
-    location.pathname.includes("/data-validation") ||
-    location.pathname.includes("/ai-settings") ||
-    location.pathname.includes("/system-health");
+    location.pathname.includes("/skill-matching");
 
   return (
     <div className="min-h-screen flex bg-white font-sans text-slate-800">

@@ -65,9 +65,8 @@ export const JobDescriptionAnalytics: React.FC = () => {
     setFileName(file.name);
 
     const ext = file.name.split(".").pop()?.toLowerCase();
-    const supportedExts = ["pdf", "docx", "txt", "md", "csv", "xlsx", "xls", "json"];
-    if (!supportedExts.includes(ext || "")) {
-      const err = `Unsupported file format (.${ext}). Please upload a supported file: PDF, DOCX, TXT, CSV, XLSX, or JSON.`;
+    if (!["pdf", "docx", "txt", "md"].includes(ext || "")) {
+      const err = `Unsupported file format (.${ext}). Please upload a .pdf, .docx, or .txt file.`;
       setUploadError(err);
       toast.error(err);
       return;
@@ -202,17 +201,17 @@ export const JobDescriptionAnalytics: React.FC = () => {
             }`}>
               <input
                 type="file"
-                accept=".pdf,.docx,.txt,.csv,.xlsx,.xls,.json"
+                accept=".pdf,.docx,.txt"
                 onChange={handleFileUpload}
                 disabled={isExtracting || isProcessing}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
               <Upload className={`w-7 h-7 mx-auto mb-2 ${isExtracting ? "text-blue-600 animate-bounce" : "text-slate-400"}`} />
               <p className="text-xs font-semibold text-slate-800">
-                {isExtracting ? "Extracting document bytes via universal parser..." : "Upload Job Description document"}
+                {isExtracting ? "Extracting document bytes via PDF/DOCX parser..." : "Upload Job Description document"}
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
-                Supports real <strong className="text-blue-700">PDF, DOCX, TXT, CSV, XLSX, and JSON</strong> (up to 10 MB)
+                Supports real <strong className="text-blue-700">PDF, DOCX, and TXT</strong> (up to 4 MB)
               </p>
               {fileName && (
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50 text-blue-800 text-[11px] font-medium border border-blue-200">

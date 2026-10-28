@@ -63,8 +63,8 @@ All extracted and evaluated competencies conform strictly to the 12 RADIX catego
 - `POST /api/v1/jd-analytics/validate`: Validates JD payload against RADIX contract schema.
 - `POST /api/v1/resume-parser/parse`: Parses candidate resume and extracts contact, skills, and experience.
 - `POST /api/v1/resume-parser/validate`: Validates CandidateProfile payload against RADIX contract schema.
-- `GET /api/v1/talent-check/companies`: Returns all curated company hiring bar benchmarks.
-- `POST /api/v1/talent-check/evaluate`: Evaluates CandidateProfile against selected company benchmark.
+- `GET /api/v1/talent-check/companies`: Reports that live company benchmarks are not configured until an approved database table is connected.
+- `POST /api/v1/talent-check/evaluate`: Returns HTTP 501 until approved database-backed hiring benchmarks are configured; it does not present sample scores as real.
 - `POST /api/v1/skill-matching/match`: Deterministic candidate vs. JD skill matching with optional Gemini AI strategic analysis.
 
 ---
@@ -83,3 +83,33 @@ The test suite validates:
 - Role 5 Candidate vs. JD skill comparison engine
 - Complete End-to-End Pipeline integration (Roles 1 $\rightarrow$ 2 $\rightarrow$ 3 $\rightarrow$ 4 $\rightarrow$ 5)
 - Smoke tests for institutional company placement profiles
+
+
+## 6. Production deployment (Netlify + Supabase)
+
+The Company Intelligence views read live records from `public.companies` and the related tables `company_brand_reputation`, `company_business`, `company_compensation`, `company_core_values`, `company_culture`, and `company_customer_testimonials` when those optional tables are available. They do **not** fall back to `SEED_COMPANIES` when the database is empty or unavailable. Placement tier, growth rate, operating countries, logo, and other fields that are not in the supplied schema are shown as unclassified/unavailable rather than fabricated.
+
+### Netlify setup
+
+1. Connect the repository in Netlify and set the **Base directory** to the project root containing this `package.json`.
+2. Build command: `npm run build`.
+3. Publish directory: `dist`.
+4. Add these environment variables under Site configuration → Environment variables:
+   - `VITE_SUPABASE_URL`: your Supabase project URL.
+   - `VITE_SUPABASE_ANON_KEY`: your Supabase publishable/anon key (never a service-role key).
+   - `GEMINI_API_KEY`: optional server-side key for the Gemini enhancement endpoint.
+5. Trigger a new deploy after changing `VITE_*` values because Vite embeds them at build time.
+
+The Netlify Function in `netlify/functions/api.ts` serves the Express API endpoints. API redirects are ordered before the single-page-app fallback. Uploads are capped at 4 MB to fit within serverless request-size limits. Local development uses `npm run dev`; the static frontend build is `npm run build`.
+
+### Supabase security
+
+The browser uses only the public/anon key. Configure Row Level Security policies so the intended public/authorized role can read only the company information that should be public. Do not disable RLS globally or place a Supabase service-role key in any `VITE_*` variable. The frontend queries the existing `companies` table; if no rows are visible, the UI displays an honest empty state.
+
+### Skills and placement benchmarks
+
+The supplied schema extract confirms company research tables but does not establish that company skill requirement or placement benchmark tables exist. Skill Intelligence reads the optional skill tables when they exist and contain data; it does not manufacture skills when those tables are missing or empty. Talent Check does not display bundled benchmark fixtures as live criteria. Its scoring endpoint returns a clear not-configured response until approved company hiring benchmarks are stored in a database-backed table.
+
+### Validation limitations
+
+A live build and integration test require dependency installation plus valid Netlify/Supabase environment variables. If dependencies cannot be installed, run `npm install`, then `npm run build` and `npm test` in the project root before publishing. A successful local build alone does not prove the live Supabase RLS policies or deployed function are configured correctly.

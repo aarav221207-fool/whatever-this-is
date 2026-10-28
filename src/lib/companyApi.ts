@@ -10,207 +10,168 @@ import {
 } from "./companyData";
 import type { SkillTopic } from "../data/skillTopics";
 
-// ==========================================
-// 1. Hook: useCompanies
-// Reads real database records from public.company_json
-// Never produces silent fake fallback data in production.
-// ==========================================
+function requireSupabase(): void {
+  if (!isSupabaseConfigured) {
+    throw new Error(
+      "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify Site configuration > Environment variables, then redeploy."
+    );
+  }
+}
+
+function describeDbError(table: string, message: string, status?: number): Error {
+  return new Error(
+    `Supabase query failed for public.${table}${status ? ` (HTTP ${status})` : ""}: ${message}. Check the table name, column permissions, and SELECT Row Level Security policy.`
+  );
+}
+
+/** Company list reads from the supplied real schema: public.companies. */
 export function useCompanies() {
   return useQuery<CompanySummary[]>({
     queryKey: ["companies"],
     queryFn: async () => {
-      if (!isSupabaseConfigured) {
-        throw new Error(
-          "Database connection is unconfigured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing from your environment variables. In Netlify, add them under Site Configuration > Environment Variables and trigger a rebuild."
-        );
-      }
-
-      // Query ONLY from public.company_json
+      requireSupabase();
       const { data, error, status } = await supabase
-        .from("company_json")
-        .select("company_id, short_json");
+        .from("companies")
+        .select("company_id, name, short_name, category, incorporation_year, headquarters_address, employee_size, website_url")
+        .order("name", { ascending: true });
 
-      if (error) {
-        throw new Error(
-          `Database query failed on 'company_json' (HTTP ${status || "err"}): ${error.message}. Hint: Ensure table permissions or Row Level Security (RLS) policies allow SELECT for role 'anon'.`
-        );
-      }
-
-      if (!data || data.length === 0) {
-        // Return genuine empty list - NO silent mock fallbacks
-        return [];
-      }
-
-      return data.map((row: any) =>
-        normalizeCompanySummary(row.short_json, row.company_id)
-      );
+      if (error) throw describeDbError("companies", error.message, status);
+      return (data || [])
+        .filter((row: any) => Number.isFinite(Number(row.company_id)) && String(row.name || "").trim())
+        .map((row: any) => normalizeCompanySummary(row, Number(row.company_id)));
     },
+    staleTime: 60_000,
+    retry: 1,
   });
 }
 
-// ==========================================
-// 2. Hook: useCompanyProfile
-// Queries SELECT company_id, short_json, full_json FROM company_json WHERE company_id = :id
-// Never substitutes hardcoded fake profiles.
-// ==========================================
+/**
+ * Company profiles use the normalized tables in the supplied schema. Optional
+ * one-to-one tables are merged only when the live query succeeds. Missing
+ * optional detail is shown as unavailable, never replaced with seed data.
+ */
 export function useCompanyProfile(id: number | null | undefined) {
   return useQuery<CompanyProfile | null>({
     queryKey: ["companyProfile", id],
     enabled: typeof id === "number" && id > 0,
     queryFn: async () => {
       if (!id) return null;
+      requireSupabase();
 
-      if (!isSupabaseConfigured) {
-        throw new Error(
-          "Database connection is unconfigured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing."
-        );
-      }
-
-      // Read ONLY from public.company_json
-      const { data, error, status } = await supabase
-        .from("company_json")
-        .select("company_id, short_json, full_json")
+      const { data: company, error, status } = await supabase
+        .from("companies")
+        .select("company_id, name, short_name, category, incorporation_year, nature_of_company, headquarters_address, office_count, employee_size, website_url, linkedin_url, twitter_handle, facebook_url, instagram_url, primary_contact_email, primary_phone_number, overview_text, vision_statement, mission_statement, legal_issues, carbon_footprint")
         .eq("company_id", id)
         .maybeSingle();
+      if (error) throw describeDbError("companies", error.message, status);
+      if (!company) return null;
 
-      if (error) {
-        throw new Error(
-          `Failed to load profile for company ID ${id} (HTTP ${status || "err"}): ${error.message}`
-        );
+      const optionalTables = [
+        "company_brand_reputation",
+        "company_business",
+        "company_compensation",
+        "company_core_values",
+        "company_culture",
+        "company_customer_testimonials",
+      ];
+      const related = await Promise.all(
+        optionalTables.map(async (table) => {
+          const result = await supabase.from(table).select("*").eq("company_id", id).limit(1);
+          // These are optional detail sections. A missing/inaccessible optional
+          // table must not prevent the known companies record from loading.
+          if (result.error || !result.data?.length) return {};
+          return result.data[0] as Record<string, unknown>;
+        })
+      );
+
+      const merged: Record<string, unknown> = { ...company };
+      for (const record of related) {
+        for (const [key, value] of Object.entries(record)) {
+          if (key.endsWith("_id") || key === "company_id") continue;
+          if (value !== null && value !== undefined && String(value).trim() !== "") {
+            // Prefer the first real non-empty value when several tables happen
+            // to use the same column name.
+            if (merged[key] === null || merged[key] === undefined || String(merged[key]).trim() === "") {
+              merged[key] = value;
+            }
+          }
+        }
       }
 
-      if (!data) {
-        // Honest null - company does not exist in the database
-        return null;
-      }
-
-      return normalizeCompanyProfile(data.full_json, data.short_json, data.company_id);
+      return normalizeCompanyProfile(merged, merged, Number(company.company_id));
     },
+    staleTime: 60_000,
+    retry: 1,
   });
 }
 
-// ==========================================
-// 3. Hook: useCompanySkills
-// Queries ONLY the 4 skill tables:
-// - company_skill_levels
-// - skill_set_master
-// - proficiency_levels
-// - skill_set_topics
-// Never substitutes hardcoded fake skill ladders.
-// ==========================================
 export interface CompanySkillsData {
   skills: DashboardSkill[];
   topicsMap: Record<number, SkillTopic[]>;
 }
 
+/** Reads the optional skills schema if it exists. No invented skills are returned. */
 export function useCompanySkills(id: number | null | undefined) {
   return useQuery<CompanySkillsData>({
     queryKey: ["companySkills", id],
     enabled: typeof id === "number" && id > 0,
     queryFn: async () => {
-      if (!id) {
-        return { skills: [], topicsMap: {} };
-      }
+      if (!id) return { skills: [], topicsMap: {} };
+      requireSupabase();
 
-      if (!isSupabaseConfigured) {
-        throw new Error(
-          "Database connection is unconfigured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing."
-        );
-      }
-
-      // 1. Query company_skill_levels
-      const { data: skillLevelsData, error: skillLevelsError, status } = await supabase
+      const { data: levels, error } = await supabase
         .from("company_skill_levels")
         .select("company_id, skill_set_id, required_level, required_proficiency_level_id")
         .eq("company_id", id);
 
-      if (skillLevelsError) {
-        throw new Error(
-          `Failed to query 'company_skill_levels' for company ID ${id} (HTTP ${status || "err"}): ${skillLevelsError.message}`
-        );
-      }
-
-      if (!skillLevelsData || skillLevelsData.length === 0) {
-        // Return genuine empty skill matrix
-        return { skills: [], topicsMap: {} };
-      }
-
-      const skillSetIds = skillLevelsData.map((s: any) => s.skill_set_id);
-
-      // 2. Query auxiliary tables in parallel
-      const [mastersRes, profRes, topicsRes] = await Promise.all([
-        supabase
-          .from("skill_set_master")
-          .select("skill_set_id, skill_set_name, short_name")
-          .in("skill_set_id", skillSetIds),
-        supabase
-          .from("proficiency_levels")
-          .select("proficiency_level_id, proficiency_name, proficiency_code"),
-        supabase
-          .from("skill_set_topics")
-          .select("skill_set_id, level_number, topics")
-          .in("skill_set_id", skillSetIds)
-          .order("level_number", { ascending: true }),
-      ]);
-
-      if (mastersRes.error) {
-        console.warn("[companyApi] Warning fetching skill_set_master:", mastersRes.error);
-      }
-      if (profRes.error) {
-        console.warn("[companyApi] Warning fetching proficiency_levels:", profRes.error);
-      }
-      if (topicsRes.error) {
-        console.warn("[companyApi] Warning fetching skill_set_topics:", topicsRes.error);
-      }
-
-      // Build master name map
-      const masterMap = new Map<number, { skill_set_name: string; short_name: string }>();
-      (mastersRes.data || []).forEach((m: any) => {
-        masterMap.set(m.skill_set_id, m);
-      });
-
-      // Build proficiency name map
-      const profMap = new Map<number, string>();
-      (profRes.data || []).forEach((p: any) => {
-        profMap.set(p.proficiency_level_id, p.proficiency_name);
-      });
-
-      // Build topicsMap strictly from database rows
-      const assembledTopicsMap: Record<number, SkillTopic[]> = {};
-      skillSetIds.forEach((sid: number) => {
-        assembledTopicsMap[sid] = [];
-      });
-
-      (topicsRes.data || []).forEach((t: any) => {
-        const sid = t.skill_set_id;
-        if (!assembledTopicsMap[sid]) {
-          assembledTopicsMap[sid] = [];
+      // The provided schema extract does not include the skills tables. Keep
+      // the page usable and honest if they are not installed in this database.
+      if (error) {
+        const message = `${error.message || "Skill tables unavailable"}`.toLowerCase();
+        if (message.includes("does not exist") || message.includes("schema cache") || message.includes("could not find the table")) {
+          return { skills: [], topicsMap: {} };
         }
-        assembledTopicsMap[sid].push({
-          level_number: Number(t.level_number) || 1,
-          topic: String(t.topics || t.topic || `Level ${t.level_number}`),
-        });
+        throw describeDbError("company_skill_levels", error.message);
+      }
+      const validLevels = (levels || []).filter((row: any) => {
+        const level = Number(row.required_level);
+        return Number.isFinite(Number(row.skill_set_id)) && Number.isFinite(level) && level >= 1 && level <= 10;
       });
+      if (!validLevels.length) return { skills: [], topicsMap: {} };
 
-      // Assemble skill rows for normalizeDashboardSkills
-      const assembledSkills = skillLevelsData.map((row: any) => {
-        const master = masterMap.get(row.skill_set_id);
-        const profName = profMap.get(row.required_proficiency_level_id) || "Proficient";
+      const ids = [...new Set(validLevels.map((row: any) => Number(row.skill_set_id)).filter(Number.isFinite))];
+      const [mastersRes, profRes, topicsRes] = await Promise.all([
+        supabase.from("skill_set_master").select("skill_set_id, skill_set_name, short_name").in("skill_set_id", ids),
+        supabase.from("proficiency_levels").select("proficiency_level_id, proficiency_name, proficiency_code"),
+        supabase.from("skill_set_topics").select("skill_set_id, level_number, topics").in("skill_set_id", ids).order("level_number", { ascending: true }),
+      ]);
+      const auxiliaryError = mastersRes.error || profRes.error || topicsRes.error;
+      if (auxiliaryError) throw new Error(`Could not load skill reference data: ${auxiliaryError.message}`);
 
-        return {
-          skill_set_id: row.skill_set_id,
-          skill_set_name: master ? master.skill_set_name : `Skill ${row.skill_set_id}`,
-          required_level: row.required_level,
-          required_proficiency: profName,
-        };
+      const masterMap = new Map<number, any>((mastersRes.data || []).map((row: any) => [Number(row.skill_set_id), row] as [number, any]));
+      const proficiencyMap = new Map<number, string>((profRes.data || []).map((row: any) => [Number(row.proficiency_level_id), String(row.proficiency_name || row.proficiency_code || "Not specified")] as [number, string]));
+      const topicsMap: Record<number, SkillTopic[]> = Object.fromEntries(ids.map((skillId) => [skillId, []]));
+      for (const topic of topicsRes.data || []) {
+        const skillId = Number((topic as any).skill_set_id);
+        if (!topicsMap[skillId]) topicsMap[skillId] = [];
+        const label = String((topic as any).topics || "").trim();
+        if (label) topicsMap[skillId].push({ level_number: Number((topic as any).level_number) || 1, topic: label });
+      }
+
+      const assembled = validLevels.flatMap((row: any) => {
+        const master = masterMap.get(Number(row.skill_set_id));
+        const skillName = String(master?.skill_set_name || master?.short_name || "").trim();
+        if (!skillName) return [];
+        return [{
+          skill_set_id: Number(row.skill_set_id),
+          skill_set_name: skillName,
+          required_level: Number(row.required_level),
+          required_proficiency: proficiencyMap.get(Number(row.required_proficiency_level_id)) || "Not specified",
+        }];
       });
-
-      const normalizedSkills = normalizeDashboardSkills(assembledSkills);
-
-      return {
-        skills: normalizedSkills,
-        topicsMap: assembledTopicsMap,
-      };
+      return { skills: normalizeDashboardSkills(assembled), topicsMap };
     },
+    staleTime: 60_000,
+    retry: 1,
   });
 }

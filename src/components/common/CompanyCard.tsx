@@ -15,6 +15,7 @@ const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string
   Dream: { bg: "bg-[#2563eb]/10", text: "text-[#2563eb]", border: "border-[#2563eb]/25" },
   Standard: { bg: "bg-[#16a34a]/10", text: "text-[#16a34a]", border: "border-[#16a34a]/25" },
   Regular: { bg: "bg-[#d97706]/10", text: "text-[#d97706]", border: "border-[#d97706]/25" },
+  Unclassified: { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-200" },
 };
 
 export const CompanyCard: React.FC<CompanyCardProps> = React.memo(({ company }) => {
@@ -29,7 +30,7 @@ export const CompanyCard: React.FC<CompanyCardProps> = React.memo(({ company }) 
     navigate("/company/intelligence");
   };
 
-  const categoryStyle = CATEGORY_STYLES[company.company_type] || CATEGORY_STYLES.Dream;
+  const categoryStyle = CATEGORY_STYLES[company.company_type] || CATEGORY_STYLES.Unclassified;
   const isNegativeGrowth = company.yoy_growth_rate.trim().startsWith("-");
   const isGrowthEmpty = isNullish(company.yoy_growth_rate);
   const isHqEmpty = isNullish(company.headquarters_address);

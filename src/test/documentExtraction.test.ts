@@ -12,8 +12,8 @@ describe("Document Extractor Service (PDF / DOCX / TXT)", () => {
     ).rejects.toThrow(/empty/i);
   });
 
-  it("rejects oversized files exceeding 10MB limit with HTTP 413 error", async () => {
-    const hugeBuffer = Buffer.alloc(11 * 1024 * 1024);
+  it("rejects oversized files exceeding 4MB limit with HTTP 413 error", async () => {
+    const hugeBuffer = Buffer.alloc(5 * 1024 * 1024);
     await expect(
       extractTextFromBuffer(hugeBuffer, "large.pdf")
     ).rejects.toThrow(/exceeds maximum allowed limit/i);

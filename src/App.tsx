@@ -13,10 +13,6 @@ import { ResumeParserPage } from "./pages/ResumeParserPage";
 import { ProfileBuilderPage } from "./pages/ProfileBuilderPage";
 import { TalentCheckPage } from "./pages/TalentCheckPage";
 import { SkillMatchingPage } from "./pages/SkillMatchingPage";
-import { AiPipelinePage } from "./pages/AiPipelinePage";
-import { DataValidationPage } from "./pages/DataValidationPage";
-import { AiSettingsPage } from "./pages/AiSettingsPage";
-import { SystemHealthPage } from "./pages/SystemHealthPage";
 import { NotFound } from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -69,12 +65,6 @@ export default function App() {
                   <Route path="/company" element={<Navigate to="/company/intelligence" replace />} />
                   <Route path="/company/intelligence" element={<CompanyIntelligence />} />
                   <Route path="/company/skills" element={<SkillIntelligence />} />
-
-                  {/* AI Placement & Institutional Governance */}
-                  <Route path="/ai-pipeline" element={<AiPipelinePage />} />
-                  <Route path="/data-validation" element={<DataValidationPage />} />
-                  <Route path="/ai-settings" element={<AiSettingsPage />} />
-                  <Route path="/system-health" element={<SystemHealthPage />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
