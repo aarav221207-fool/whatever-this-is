@@ -114,6 +114,10 @@ export const JobDescriptionAnalytics: React.FC = () => {
 
   const handleSendToMatching = () => {
     if (!result) return;
+    if (sampleMode) {
+      toast.info("Demo JDs cannot be used for live company-to-student matching. Upload a real JD first.");
+      return;
+    }
     localStorage.setItem("radix_last_jd", JSON.stringify(result));
     navigate("/skill-matching");
   };
