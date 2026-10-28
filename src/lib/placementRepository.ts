@@ -194,6 +194,25 @@ export async function saveStudentResume(profile: CandidateProfile, file?: File):
   return getStudentJobRecommendations(profile);
 }
 
+/** Load the current student's saved database profile and skill rows for another page/device. */
+export async function loadStudentProfile(): Promise<CandidateProfile | null> {
+  const user = await requireSignedInUser();
+  const { data: profile, error: profileError } = await supabase
+    .from("student_profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError) throw new Error("Could not load your saved student profile: " + profileError.message);
+  if (!profile) return null;
+  const { data: skills, error: skillsError } = await supabase
+    .from("student_skills")
+    .select("*")
+    .eq("student_id", user.id)
+    .order("skill_name", { ascending: true });
+  if (skillsError) throw new Error("Could not load your saved skills: " + skillsError.message);
+  return rowToCandidate(profile, mapSkillRows(skills || []));
+}
+
 /** Save the parsed JD as a durable job record and refresh matches for real student profiles. */
 export async function saveJobDescription(jd: JobDescriptionResponse, sourceText: string, fileName?: string): Promise<StoredJob> {
   const user = await requireSignedInUser();
@@ -313,7 +332,10 @@ export async function getStudentJobRecommendations(profile: CandidateProfile): P
   }));
   const { error: matchesError } = await supabase.from("job_matches").upsert(rows, { onConflict: "student_id,job_id" });
   if (matchesError) throw new Error("Jobs were found, but match recommendations could not be saved: " + matchesError.message);
-  return recommendations.slice(0, 10);
+  return recommendations.filter(({ match, job }) =>
+    match.overall_match_score > 0 &&
+    Boolean((job.required_skills || []).length + (job.preferred_skills || []).length)
+  ).slice(0, 10);
 }
 
 export interface PlacementBoard {
