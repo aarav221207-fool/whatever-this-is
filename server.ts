@@ -32,10 +32,18 @@ const upload = multer({
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
-// Netlify rewrites may pass the API suffix without the leading /api segment.
-// Normalize both /v1/... and /api/v1/... to the same Express routes.
+// Normalize Netlify's rewritten function paths before matching Express routes.
+// Depending on the rewrite/runtime, Express can receive /v1/..., /health, or
+// /.netlify/functions/api/v1/... rather than the browser's original /api/... URL.
 app.use((req: Request, _res: Response, next: NextFunction) => {
-  if (req.path.startsWith("/v1/")) {
+  const functionPrefix = "/.netlify/functions/api";
+  if (req.url === functionPrefix) {
+    req.url = "/";
+  } else if (req.url.startsWith(functionPrefix + "/")) {
+    req.url = req.url.slice(functionPrefix.length);
+  }
+
+  if (req.path === "/health" || req.path.startsWith("/v1/")) {
     req.url = `/api${req.url}`;
   }
   next();
