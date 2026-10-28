@@ -30,15 +30,29 @@ export function useCompanies() {
     queryKey: ["companies"],
     queryFn: async () => {
       requireSupabase();
+      // Do not order/filter by a guessed column: deployments may use either
+      // company_id/name or id/company_name in the source table.
       const { data, error, status } = await supabase
         .from("companies")
-        .select("*")
-        .order("name", { ascending: true });
+        .select("*");
 
       if (error) throw describeDbError("companies", error.message, status);
       return (data || [])
-        .filter((row: any) => Number.isFinite(Number(row.company_id)) && String(row.name || "").trim())
-        .map((row: any) => normalizeCompanySummary(row, Number(row.company_id)));
+        .map((row: any) => {
+          const id = Number(row.company_id ?? row.id);
+          const name = String(row.name ?? row.company_name ?? row.company ?? "").trim();
+          if (!Number.isFinite(id) || id <= 0 || !name) return null;
+          const normalized = {
+            ...row,
+            company_id: id,
+            name,
+            short_name: row.short_name ?? row.shortName ?? name,
+            website_url: row.website_url ?? row.website ?? row.url ?? "",
+          };
+          return normalizeCompanySummary(normalized, id);
+        })
+        .filter((row: CompanySummary | null): row is CompanySummary => row !== null)
+        .sort((a, b) => a.name.localeCompare(b.name));
     },
     staleTime: 60_000,
     retry: 1,
@@ -58,13 +72,40 @@ export function useCompanyProfile(id: number | null | undefined) {
       if (!id) return null;
       requireSupabase();
 
-      const { data: company, error, status } = await supabase
+      // Support both common primary-key names without assuming that every
+      // production companies table has the same column layout.
+      let companyResult = await supabase
         .from("companies")
         .select("*")
         .eq("company_id", id)
         .maybeSingle();
-      if (error) throw describeDbError("companies", error.message, status);
+      if (companyResult.error || !companyResult.data) {
+        const fallback = await supabase
+          .from("companies")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (!fallback.error && fallback.data) {
+          companyResult = fallback;
+        } else if (companyResult.error && fallback.error) {
+          throw describeDbError("companies", fallback.error.message, fallback.status);
+        } else if (!companyResult.error && fallback.error) {
+          // The first query was valid but no matching company exists; preserve
+          // the real not-found result rather than masking it with a schema error.
+          return null;
+        } else {
+          return null;
+        }
+      }
+      const company = companyResult.data;
       if (!company) return null;
+      const companyName = String((company as any).name ?? (company as any).company_name ?? (company as any).company ?? "").trim();
+      const normalizedCompany = {
+        ...(company as any),
+        name: companyName || "Company",
+        short_name: (company as any).short_name ?? (company as any).shortName ?? companyName || "Company",
+        website_url: (company as any).website_url ?? (company as any).website ?? (company as any).url ?? "",
+      };
 
       const optionalTables = [
         "company_brand_reputation",
@@ -84,7 +125,7 @@ export function useCompanyProfile(id: number | null | undefined) {
         })
       );
 
-      const merged: Record<string, unknown> = { ...company };
+      const merged: Record<string, unknown> = { ...normalizedCompany };
       for (const record of related) {
         for (const [key, value] of Object.entries(record)) {
           if (key.endsWith("_id") || key === "company_id") continue;
@@ -98,7 +139,7 @@ export function useCompanyProfile(id: number | null | undefined) {
         }
       }
 
-      return normalizeCompanyProfile(merged, merged, Number(company.company_id));
+      return normalizeCompanyProfile(merged, merged, Number((company as any).company_id ?? (company as any).id ?? id));
     },
     staleTime: 60_000,
     retry: 1,
