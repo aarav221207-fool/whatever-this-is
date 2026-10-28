@@ -75,7 +75,8 @@ describe("Truth-in-Data Validation (No Fabricated Profiles)", () => {
       "contact@janedoe.org\n+1 555-0199\nCloud Architect with deep AWS, Kubernetes, and Terraform expertise.";
     const profile = parseResumeText(resumeText, "Jane_Doe_Resume.pdf");
 
-    expect(profile.name).toBe("Jane Doe");
+    // The email and filename are not authoritative identity evidence.
+    expect(profile.name).toBe("");
     expect(profile.name).not.toBe("Alex Mercer");
   });
 
