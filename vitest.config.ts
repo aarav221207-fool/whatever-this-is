@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // Several legacy tests share data/.ai_config.json; run files serially to avoid disk races.
+    fileParallelism: false,
   },
 });
