@@ -7,7 +7,13 @@ export interface MaskedAIConfig {
   isKeyConfigured: boolean;
   maskedKey: string;
   isEnvDefault: boolean;
-  supportedProviders: Array<{ id: "gemini" | "openai"; name: string; defaultModel: string }>;
+  storageType: "persistent_file" | "environment_variable" | "unconfigured";
+  supportedProviders: Array<{
+    id: "gemini" | "openai";
+    name: string;
+    defaultModel: string;
+    defaultEndpoint?: string;
+  }>;
 }
 
 export interface TestConnectionResponse {
@@ -23,7 +29,15 @@ export interface TestConnectionResponse {
 export interface ValidationFinding {
   id: string;
   ruleId: string;
-  dataset: "seed_companies" | "radix_benchmarks" | "placement_eligibility" | "sample_jds" | "user_uploads";
+  dataset:
+    | "seed_companies"
+    | "radix_benchmarks"
+    | "sample_jds"
+    | "sample_resumes"
+    | "mock_resume"
+    | "company_skillsets"
+    | "skill_topics"
+    | "uploaded_dataset";
   severity: "error" | "warning" | "info";
   title: string;
   description: string;
@@ -34,11 +48,13 @@ export interface ValidationFinding {
 
 export interface DatasetStats {
   dataset: string;
+  displayName: string;
   totalRecords: number;
   validRecords: number;
   warningsCount: number;
   errorsCount: number;
   complianceRate: number;
+  description: string;
 }
 
 export interface ValidationReport {
@@ -57,6 +73,20 @@ export interface ValidationReport {
   };
 }
 
+export interface UploadedRecordItem {
+  id: string;
+  fileName: string;
+  fileType: string;
+  timestamp: string;
+  charCount: number;
+  rowCount?: number;
+  columnCount?: number;
+  headers?: string[];
+  samplePreview?: any;
+  customFindings?: ValidationFinding[];
+  complianceScore?: number;
+}
+
 export interface PipelineExecutionResult {
   runId: string;
   timestamp: string;
@@ -73,7 +103,11 @@ export interface PipelineExecutionResult {
   }>;
   providerUsed: string;
   modelUsed: string;
-  output: {
+  finalStatus: "success" | "failed" | "fallback";
+  isFallback: boolean;
+  fallbackReason?: string;
+  errorMessage?: string;
+  output?: {
     executive_summary: string;
     readiness_rating: "High Match" | "Moderate Match" | "Preparation Required";
     readiness_score: number;
@@ -91,6 +125,8 @@ export interface PipelineExecutionResult {
     };
     actionable_roadmap_30_days: string[];
   };
+  rawInputSnippet?: string;
+  recordsProcessed?: number;
 }
 
 export interface SystemHealthStatus {
@@ -109,6 +145,7 @@ export interface SystemHealthStatus {
     model: string;
     is_configured: boolean;
     masked_key: string;
+    storage_type?: string;
   };
   data_validation: {
     overall_score: number;
@@ -125,7 +162,9 @@ export interface SystemHealthStatus {
   endpoints: Array<{ path: string; method: string; status: string }>;
 }
 
-// AI Configuration
+// -------------------------------------------------------------
+// AI Configuration Endpoints
+// -------------------------------------------------------------
 export async function getAIConfig(): Promise<MaskedAIConfig> {
   const res = await fetch("/api/v1/ai/config");
   if (!res.ok) throw new Error(`Failed to load AI config: HTTP ${res.status}`);
@@ -150,6 +189,30 @@ export async function saveAIConfig(params: {
   return res.json();
 }
 
+export async function replaceAIKey(apiKey: string): Promise<{ success: boolean; message: string; config: MaskedAIConfig }> {
+  const res = await fetch("/api/v1/ai/replace-key", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to replace API Key" }));
+    throw new Error(err.error || "Failed to replace API Key");
+  }
+  return res.json();
+}
+
+export async function removeAIConfig(): Promise<{ success: boolean; message: string; config: MaskedAIConfig }> {
+  const res = await fetch("/api/v1/ai/remove-config", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to remove AI configuration" }));
+    throw new Error(err.error || "Failed to remove AI configuration");
+  }
+  return res.json();
+}
+
 export async function testAIConnection(): Promise<TestConnectionResponse> {
   const res = await fetch("/api/v1/ai/test-connection", { method: "POST" });
   const data = await res.json();
@@ -165,7 +228,9 @@ export async function getAvailableModels(): Promise<{ models: string[]; provider
   return res.json();
 }
 
+// -------------------------------------------------------------
 // Data Quality & Validation
+// -------------------------------------------------------------
 export async function getValidationReport(): Promise<ValidationReport> {
   const res = await fetch("/api/v1/data/validation-report");
   if (!res.ok) throw new Error("Failed to load validation report");
@@ -179,12 +244,41 @@ export async function revalidateData(): Promise<ValidationReport> {
   return data.report;
 }
 
+export async function validateUploadedFile(file: File): Promise<{
+  success: boolean;
+  file: UploadedRecordItem;
+  overallReport: ValidationReport;
+}> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/v1/data/validate-file", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Failed to validate file (${res.status})`);
+  }
+  return data;
+}
+
+export async function getUploadedRecords(): Promise<{ uploads: UploadedRecordItem[]; total: number }> {
+  const res = await fetch("/api/v1/data/uploads");
+  if (!res.ok) throw new Error("Failed to load uploaded records");
+  return res.json();
+}
+
+// -------------------------------------------------------------
 // AI Placement Pipeline
+// -------------------------------------------------------------
 export async function runPlacementPipeline(params: {
   targetCompany: string;
   roleTitle?: string;
   rawText?: string;
   analysisType?: PipelineExecutionResult["analysisType"];
+  allowFallback?: boolean;
 }): Promise<PipelineExecutionResult> {
   const res = await fetch("/api/v1/pipeline/run", {
     method: "POST",
@@ -204,7 +298,9 @@ export async function getPipelineHistory(): Promise<{ runs: PipelineExecutionRes
   return res.json();
 }
 
+// -------------------------------------------------------------
 // System Health
+// -------------------------------------------------------------
 export async function getSystemHealth(): Promise<SystemHealthStatus> {
   const res = await fetch("/api/v1/system/status");
   if (!res.ok) throw new Error("Failed to load system health");

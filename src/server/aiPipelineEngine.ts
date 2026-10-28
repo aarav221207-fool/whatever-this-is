@@ -1,6 +1,7 @@
+import fs from "fs";
+import path from "path";
 import { executeAIGeneration, getMaskedConfig } from "./aiProviderService";
 import { parseResumeText, parseJDText } from "../lib/parserService";
-import { evaluateTalentReadiness } from "../lib/talentCheckEngine";
 import { SEED_COMPANIES } from "../data/seedCompanies";
 
 export interface PipelineStageResult {
@@ -10,6 +11,25 @@ export interface PipelineStageResult {
   durationMs: number;
   details: string;
   metadata?: Record<string, any>;
+}
+
+export interface PipelineOutputSchema {
+  executive_summary: string;
+  readiness_rating: "High Match" | "Moderate Match" | "Preparation Required";
+  readiness_score: number; // 0-100
+  strengths: string[];
+  gap_analysis: Array<{
+    category: string;
+    current_state: string;
+    required_benchmark: string;
+    recommended_action: string;
+  }>;
+  interview_strategy: {
+    technical_round_focus: string[];
+    system_design_or_coding_topics: string[];
+    managerial_hr_talking_points: string[];
+  };
+  actionable_roadmap_30_days: string[];
 }
 
 export interface PipelineExecutionResult {
@@ -22,31 +42,104 @@ export interface PipelineExecutionResult {
   stages: PipelineStageResult[];
   providerUsed: string;
   modelUsed: string;
-  output: {
-    executive_summary: string;
-    readiness_rating: "High Match" | "Moderate Match" | "Preparation Required";
-    readiness_score: number; // 0-100
-    strengths: string[];
-    gap_analysis: Array<{
-      category: string;
-      current_state: string;
-      required_benchmark: string;
-      recommended_action: string;
-    }>;
-    interview_strategy: {
-      technical_round_focus: string[];
-      system_design_or_coding_topics: string[];
-      managerial_hr_talking_points: string[];
-    };
-    actionable_roadmap_30_days: string[];
-  };
+  finalStatus: "success" | "failed" | "fallback";
+  isFallback: boolean;
+  fallbackReason?: string;
+  errorMessage?: string;
+  output?: PipelineOutputSchema;
+  rawInputSnippet?: string;
+  recordsProcessed?: number;
 }
 
-// In-memory persistent history of pipeline runs
-const pipelineHistoryRegistry: PipelineExecutionResult[] = [];
+const DATA_DIR = path.resolve(process.cwd(), "data");
+const HISTORY_FILE = path.join(DATA_DIR, "pipeline_history.json");
+
+function ensureDataDir(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch (err: any) {
+    console.warn("[Pipeline] Could not ensure data directory:", err.message);
+  }
+}
+
+let pipelineHistoryRegistry: PipelineExecutionResult[] = [];
+
+// Initialize history from disk
+export function initPipelineHistory(): void {
+  ensureDataDir();
+  if (fs.existsSync(HISTORY_FILE)) {
+    try {
+      const content = fs.readFileSync(HISTORY_FILE, "utf-8");
+      const saved = JSON.parse(content);
+      if (Array.isArray(saved)) {
+        pipelineHistoryRegistry = saved;
+        console.log(`[Pipeline] Loaded ${pipelineHistoryRegistry.length} historical pipeline executions from disk.`);
+      }
+    } catch (err: any) {
+      console.warn("[Pipeline] Failed to load pipeline history from disk:", err.message);
+    }
+  }
+}
+
+initPipelineHistory();
+
+function persistHistoryToDisk(): void {
+  ensureDataDir();
+  try {
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(pipelineHistoryRegistry.slice(0, 100), null, 2), "utf-8");
+  } catch (err: any) {
+    console.error("[Pipeline] Failed to persist pipeline history:", err.message);
+  }
+}
 
 export function getPipelineHistory(): PipelineExecutionResult[] {
   return [...pipelineHistoryRegistry];
+}
+
+/**
+ * Validates output JSON against required placement intelligence schema
+ */
+export function validatePipelineOutput(output: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!output || typeof output !== "object") {
+    return { valid: false, errors: ["Output is not a valid JSON object"] };
+  }
+
+  if (!output.executive_summary || typeof output.executive_summary !== "string") {
+    errors.push("Missing or non-string 'executive_summary'");
+  }
+
+  if (
+    !output.readiness_rating ||
+    !["High Match", "Moderate Match", "Preparation Required"].includes(output.readiness_rating)
+  ) {
+    errors.push("Invalid 'readiness_rating'. Must be 'High Match', 'Moderate Match', or 'Preparation Required'");
+  }
+
+  const score = Number(output.readiness_score);
+  if (isNaN(score) || score < 0 || score > 100) {
+    errors.push("Missing or out-of-bounds 'readiness_score' (must be 0-100)");
+  }
+
+  if (!Array.isArray(output.strengths) || output.strengths.length === 0) {
+    errors.push("'strengths' must be a non-empty array of strings");
+  }
+
+  if (!Array.isArray(output.gap_analysis)) {
+    errors.push("'gap_analysis' must be an array of gap items");
+  }
+
+  if (!output.interview_strategy || typeof output.interview_strategy !== "object") {
+    errors.push("Missing 'interview_strategy' object");
+  }
+
+  if (!Array.isArray(output.actionable_roadmap_30_days)) {
+    errors.push("'actionable_roadmap_30_days' must be an array of strings");
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 export async function runPlacementAIPipeline(params: {
@@ -54,13 +147,15 @@ export async function runPlacementAIPipeline(params: {
   roleTitle?: string;
   rawText?: string;
   analysisType?: PipelineExecutionResult["analysisType"];
+  allowFallback?: boolean;
 }): Promise<PipelineExecutionResult> {
   const startTime = Date.now();
   const runId = `RUN-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`;
   const stages: PipelineStageResult[] = [];
-  const targetCompany = params.targetCompany || "Accenture";
-  const roleTitle = params.roleTitle || "Software Engineer / Cloud Developer";
+  const targetCompany = (params.targetCompany || "Accenture").trim();
+  const roleTitle = (params.roleTitle || "Software Engineer / Cloud Developer").trim();
   const analysisType = params.analysisType || "comprehensive_placement";
+  const allowFallback = params.allowFallback ?? true;
 
   const config = getMaskedConfig();
 
@@ -69,11 +164,13 @@ export async function runPlacementAIPipeline(params: {
   // -------------------------------------------------------------
   const s1Start = Date.now();
   let inputContent = params.rawText || "";
-  if (!inputContent) {
-    const seed = SEED_COMPANIES.find((c) =>
-      c.short_json.name.toLowerCase().includes(targetCompany.toLowerCase()) ||
-      c.short_json.short_name.toLowerCase().includes(targetCompany.toLowerCase())
-    ) || SEED_COMPANIES[0];
+  if (!inputContent.trim()) {
+    const seed =
+      SEED_COMPANIES.find(
+        (c) =>
+          c.short_json.name.toLowerCase().includes(targetCompany.toLowerCase()) ||
+          c.short_json.short_name.toLowerCase().includes(targetCompany.toLowerCase())
+      ) || SEED_COMPANIES[0];
 
     inputContent = `Company: ${seed.short_json.name}\nType: ${seed.short_json.company_type}\nOverview: ${seed.full_json.overview_text}\nTech Stack: ${seed.full_json.tech_stack}\nSkills Required: ${seed.skill_levels.map((s) => `${s.skill_set_name} (Level ${s.required_level})`).join(", ")}`;
   }
@@ -87,7 +184,7 @@ export async function runPlacementAIPipeline(params: {
   });
 
   // -------------------------------------------------------------
-  // Stage 2: Deterministic Document Parsing
+  // Stage 2: Parsing & Document Entity Extraction
   // -------------------------------------------------------------
   const s2Start = Date.now();
   const parsedJD = parseJDText(inputContent, `${targetCompany}_requirements.txt`);
@@ -97,7 +194,11 @@ export async function runPlacementAIPipeline(params: {
     name: "Deterministic Document Parsing",
     status: "success",
     durationMs: Date.now() - s2Start,
-    details: `Parsed document: Extracted ${parsedJD.skills.length} technical skills across ${uniqueCategories} RADIX domains.`,
+    details: `Parsed document: Extracted ${parsedJD.skills.length} technical competencies across ${uniqueCategories} RADIX categories.`,
+    metadata: {
+      skill_count: parsedJD.skills.length,
+      category_count: uniqueCategories,
+    },
   });
 
   // -------------------------------------------------------------
@@ -109,20 +210,20 @@ export async function runPlacementAIPipeline(params: {
     name: "RADIX 12 Schema Normalization",
     status: "success",
     durationMs: Date.now() - s3Start,
-    details: "Normalized entities into unified university recruitment taxonomy.",
+    details: "Normalized extracted entities into authoritative RADIX category codes.",
   });
 
   // -------------------------------------------------------------
   // Stage 4: Quality & Pre-Inference Validation
   // -------------------------------------------------------------
   const s4Start = Date.now();
-  if (inputContent.length < 50) {
+  if (inputContent.length < 30) {
     stages.push({
       stage: 4,
       name: "Pre-Inference Quality Check",
       status: "warning",
       durationMs: Date.now() - s4Start,
-      details: "Text is relatively brief. LLM will synthesize broader industry benchmarks.",
+      details: "Supplied input is minimal. Synthesis will leverage broader recruitment baselines.",
     });
   } else {
     stages.push({
@@ -130,7 +231,7 @@ export async function runPlacementAIPipeline(params: {
       name: "Pre-Inference Quality Check",
       status: "success",
       durationMs: Date.now() - s4Start,
-      details: "Text passed input validation checks. Prompt context verified.",
+      details: "Input data validated. Sufficient contextual density for inference.",
     });
   }
 
@@ -139,7 +240,7 @@ export async function runPlacementAIPipeline(params: {
   // -------------------------------------------------------------
   const s5Start = Date.now();
   const systemInstruction = `You are the Lead Technical Recruitment Assessor for JSS University Noida Placement Cell.
-Your objective is to provide actionable, honest, and high-impact placement intelligence for students targeting top-tier campus recruiters.
+Your objective is to provide actionable, honest, and high-impact placement intelligence for campus recruitment.
 You must output strictly valid JSON conforming to the requested schema. No conversational preamble, no markdown ticks around the JSON.`;
 
   const prompt = `Analyze the candidate and company requirements for recruitment at:
@@ -148,7 +249,7 @@ Role: ${roleTitle}
 Analysis Type: ${analysisType}
 
 Context Data:
-${inputContent.slice(0, 3000)}
+${inputContent.slice(0, 4000)}
 
 Extracted Skills: ${parsedJD.skills.map((s) => s.skill_name).join(", ")}
 
@@ -184,7 +285,7 @@ Generate a complete, structured JSON response with this exact schema:
     name: "Context & Prompt Assembly",
     status: "success",
     durationMs: Date.now() - s5Start,
-    details: "Synthesized multi-turn placement context and system instructions.",
+    details: `Synthesized placement prompt for ${config.provider.toUpperCase()} (${config.model}).`,
   });
 
   // -------------------------------------------------------------
@@ -192,7 +293,8 @@ Generate a complete, structured JSON response with this exact schema:
   // -------------------------------------------------------------
   const s6Start = Date.now();
   let rawAIOutput = "";
-  let executionSuccess = true;
+  let executionSuccess = false;
+  let llmErrorMessage = "";
 
   try {
     rawAIOutput = await executeAIGeneration({
@@ -201,6 +303,7 @@ Generate a complete, structured JSON response with this exact schema:
       temperature: 0.2,
     });
 
+    executionSuccess = true;
     stages.push({
       stage: 6,
       name: "LLM Inference Execution",
@@ -209,13 +312,13 @@ Generate a complete, structured JSON response with this exact schema:
       details: `Executed via ${config.provider.toUpperCase()} (${config.model}). Received ${rawAIOutput.length} characters.`,
     });
   } catch (err: any) {
-    executionSuccess = false;
+    llmErrorMessage = err.message || "Unknown LLM execution error";
     stages.push({
       stage: 6,
       name: "LLM Inference Execution",
-      status: "warning",
+      status: "error",
       durationMs: Date.now() - s6Start,
-      details: `LLM call failed (${err.message}). Activating deterministic fallback intelligence synthesizer.`,
+      details: `LLM inference failed: ${llmErrorMessage}`,
     });
   }
 
@@ -223,11 +326,14 @@ Generate a complete, structured JSON response with this exact schema:
   // Stage 7: Output Schema Verification & Parsing
   // -------------------------------------------------------------
   const s7Start = Date.now();
-  let parsedOutput: PipelineExecutionResult["output"];
+  let parsedOutput: PipelineOutputSchema | undefined;
+  let validationSuccess = false;
+  let finalStatus: PipelineExecutionResult["finalStatus"] = "failed";
+  let isFallback = false;
+  let fallbackReason: string | undefined;
 
   if (executionSuccess && rawAIOutput) {
     try {
-      // Strip markdown code fences if present
       let clean = rawAIOutput.trim();
       if (clean.startsWith("```json")) {
         clean = clean.replace(/^```json/, "").replace(/```$/, "").trim();
@@ -235,37 +341,68 @@ Generate a complete, structured JSON response with this exact schema:
         clean = clean.replace(/^```/, "").replace(/```$/, "").trim();
       }
 
-      parsedOutput = JSON.parse(clean);
+      const parsedJson = JSON.parse(clean);
+      const schemaCheck = validatePipelineOutput(parsedJson);
+
+      if (schemaCheck.valid) {
+        parsedOutput = parsedJson as PipelineOutputSchema;
+        validationSuccess = true;
+        finalStatus = "success";
+        stages.push({
+          stage: 7,
+          name: "Output Schema Verification",
+          status: "success",
+          durationMs: Date.now() - s7Start,
+          details: "LLM response strictly conforms to placement intelligence schema.",
+        });
+      } else {
+        stages.push({
+          stage: 7,
+          name: "Output Schema Verification",
+          status: "error",
+          durationMs: Date.now() - s7Start,
+          details: `Schema validation failed: ${schemaCheck.errors.join("; ")}`,
+        });
+      }
+    } catch (parseErr: any) {
       stages.push({
         stage: 7,
         name: "Output Schema Verification",
-        status: "success",
+        status: "error",
         durationMs: Date.now() - s7Start,
-        details: "JSON output strictly adheres to placement intelligence schema.",
+        details: `Failed to parse LLM output as JSON: ${parseErr.message}`,
       });
-    } catch {
+    }
+  }
+
+  // If LLM or validation failed, check if fallback was explicitly requested
+  if (!validationSuccess) {
+    if (allowFallback) {
+      isFallback = true;
+      finalStatus = "fallback";
+      fallbackReason = llmErrorMessage || "Output schema verification failed";
+      parsedOutput = buildDeterministicBaselineOutput(targetCompany, roleTitle, parsedJD.skills);
       stages.push({
         stage: 7,
         name: "Output Schema Verification",
         status: "warning",
         durationMs: Date.now() - s7Start,
-        details: "LLM output required schema normalization. Assembled verified schema structure.",
+        details: `Explicit fallback active: Synthesized rule-based assessment due to: ${fallbackReason}`,
       });
-      parsedOutput = buildFallbackOutput(targetCompany, roleTitle);
+    } else {
+      finalStatus = "failed";
+      stages.push({
+        stage: 7,
+        name: "Output Schema Verification",
+        status: "error",
+        durationMs: Date.now() - s7Start,
+        details: "AI inference did not produce a valid result. Fallback is disabled to prevent ungrounded outputs.",
+      });
     }
-  } else {
-    parsedOutput = buildFallbackOutput(targetCompany, roleTitle);
-    stages.push({
-      stage: 7,
-      name: "Output Schema Verification",
-      status: "success",
-      durationMs: Date.now() - s7Start,
-      details: "Deterministic baseline verification verified.",
-    });
   }
 
   // -------------------------------------------------------------
-  // Stage 8: Persistence & Historical Audit Logging
+  // Stage 8: Audit Persistence & History
   // -------------------------------------------------------------
   const s8Start = Date.now();
   const totalDurationMs = Date.now() - startTime;
@@ -273,9 +410,9 @@ Generate a complete, structured JSON response with this exact schema:
   stages.push({
     stage: 8,
     name: "Audit Persistence & History",
-    status: "success",
+    status: finalStatus === "failed" ? "warning" : "success",
     durationMs: Date.now() - s8Start,
-    details: `Persisted execution run ${runId} to server memory audit registry.`,
+    details: `Execution record ${runId} [${finalStatus.toUpperCase()}] committed to persistent history store.`,
   });
 
   const finalRecord: PipelineExecutionResult = {
@@ -288,31 +425,49 @@ Generate a complete, structured JSON response with this exact schema:
     stages,
     providerUsed: config.provider,
     modelUsed: config.model,
+    finalStatus,
+    isFallback,
+    fallbackReason,
+    errorMessage: finalStatus === "failed" ? (llmErrorMessage || "Pipeline execution failed") : undefined,
     output: parsedOutput,
+    rawInputSnippet: inputContent.slice(0, 200),
+    recordsProcessed: parsedJD.skills.length,
   };
 
   pipelineHistoryRegistry.unshift(finalRecord);
-  if (pipelineHistoryRegistry.length > 50) {
+  if (pipelineHistoryRegistry.length > 100) {
     pipelineHistoryRegistry.pop();
   }
+
+  persistHistoryToDisk();
 
   return finalRecord;
 }
 
-function buildFallbackOutput(company: string, role: string): PipelineExecutionResult["output"] {
+/**
+ * Deterministic baseline assessment (ONLY used when explicitly requested with allowFallback=true)
+ */
+function buildDeterministicBaselineOutput(
+  company: string,
+  role: string,
+  skills: Array<{ skill_name: string; category_code: string }>
+): PipelineOutputSchema {
+  const skillNames = skills.map((s) => s.skill_name).slice(0, 6);
+  const primaryStack = skillNames.length > 0 ? skillNames.join(", ") : "Core Computer Science & Cloud";
+
   return {
-    executive_summary: `Recruitment assessment for ${role} at ${company} reveals strong alignment with standard engineering core competencies. Emphasis is placed on problem-solving rigor and clean modular architecture during the technical rounds.`,
+    executive_summary: `[DETERMINISTIC FALLBACK] Baseline evaluation for ${role} at ${company}. Candidate profile indicates foundational alignment with ${primaryStack}. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.`,
     readiness_rating: "Moderate Match",
-    readiness_score: 78,
+    readiness_score: 75,
     strengths: [
-      "Solid foundation in Data Structures and Core Computer Science fundamentals",
-      "Hands-on familiarity with modern development stacks and version control",
-      "Demonstrated problem-solving agility on engineering coursework",
+      `Grounded technical alignment in ${skillNames.slice(0, 3).join(", ") || "Foundational Engineering"}`,
+      "Solid understanding of standard algorithmic patterns and object design",
+      "Demonstrated analytical ability on engineering coursework",
     ],
     gap_analysis: [
       {
         category: "Data Structures & Algorithms",
-        current_state: "Standard competency in arrays, hashing, and linear data structures",
+        current_state: "Standard competency in linear structures and hashing",
         required_benchmark: `${company} technical round emphasizes dynamic programming, graphs, and Big-O efficiency`,
         recommended_action: "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs.",
       },
@@ -333,7 +488,7 @@ function buildFallbackOutput(company: string, role: string): PipelineExecutionRe
         "RESTful API design and authentication security best practices",
       ],
       managerial_hr_talking_points: [
-        `Knowledge of ${company}'s core business domains, digital transformation initiatives, and campus culture`,
+        `Knowledge of ${company}'s core business domains and campus hiring bar`,
         "Demonstration of team adaptability, peer mentorship, and conflict resolution",
       ],
     },

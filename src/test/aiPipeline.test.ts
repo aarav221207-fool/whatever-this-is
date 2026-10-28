@@ -28,12 +28,13 @@ describe("AI Placement Intelligence Pipeline", () => {
     expect(stageNames).toContain("Audit Persistence & History");
 
     // Verify output contract
-    expect(result.output.executive_summary).toBeDefined();
-    expect(result.output.readiness_score).toBeGreaterThan(0);
-    expect(result.output.strengths.length).toBeGreaterThan(0);
-    expect(result.output.gap_analysis.length).toBeGreaterThan(0);
-    expect(result.output.interview_strategy.technical_round_focus.length).toBeGreaterThan(0);
-    expect(result.output.actionable_roadmap_30_days.length).toBeGreaterThan(0);
+    expect(result.output).toBeDefined();
+    expect(result.output!.executive_summary).toBeDefined();
+    expect(result.output!.readiness_score).toBeGreaterThan(0);
+    expect(result.output!.strengths.length).toBeGreaterThan(0);
+    expect(result.output!.gap_analysis.length).toBeGreaterThan(0);
+    expect(result.output!.interview_strategy.technical_round_focus.length).toBeGreaterThan(0);
+    expect(result.output!.actionable_roadmap_30_days.length).toBeGreaterThan(0);
 
     // Check history registry
     const history = getPipelineHistory();

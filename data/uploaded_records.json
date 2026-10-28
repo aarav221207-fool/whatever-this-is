@@ -1,0 +1,205 @@
+[
+  {
+    "id": "UPL-MVRX6L0S-758",
+    "fileName": "audit_test.csv",
+    "fileType": "csv",
+    "timestamp": "2026-10-28T09:36:23.788Z",
+    "charCount": 57,
+    "rowCount": 3,
+    "columnCount": 4,
+    "headers": [
+      "id",
+      "name",
+      "role",
+      "salary"
+    ],
+    "samplePreview": "File: audit_test.csv\nType: CSV Spreadsheet\nTotal Rows: 3\nColumns: id, name, role, salary\n\n--- Sample Records (First 5) ---\n[Row 1] id: 1 | name: Alice | role: Engineer | salary: null\n[Row 2] id: 2 | name: Bob | role: null | salary: null\n[Row 3] id: 3 | name: Charlie | role: null | salary: null\n",
+    "customFindings": [
+      {
+        "id": "UF-1793180183788-role",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "warning",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'role' has 2 null/empty cells (67% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "role",
+        "recommendation": "Check data export or provide default values for column 'role'."
+      },
+      {
+        "id": "UF-1793180183788-salary",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "error",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'salary' has 3 null/empty cells (100% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "salary",
+        "recommendation": "Check data export or provide default values for column 'salary'."
+      }
+    ],
+    "complianceScore": 70
+  },
+  {
+    "id": "UPL-MVRX2PTJ-720",
+    "fileName": "audit_test.csv",
+    "fileType": "csv",
+    "timestamp": "2026-10-28T09:33:23.384Z",
+    "charCount": 57,
+    "rowCount": 3,
+    "columnCount": 4,
+    "headers": [
+      "id",
+      "name",
+      "role",
+      "salary"
+    ],
+    "samplePreview": "File: audit_test.csv\nType: CSV Spreadsheet\nTotal Rows: 3\nColumns: id, name, role, salary\n\n--- Sample Records (First 5) ---\n[Row 1] id: 1 | name: Alice | role: Engineer | salary: null\n[Row 2] id: 2 | name: Bob | role: null | salary: null\n[Row 3] id: 3 | name: Charlie | role: null | salary: null\n",
+    "customFindings": [
+      {
+        "id": "UF-1793180003384-role",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "warning",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'role' has 2 null/empty cells (67% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "role",
+        "recommendation": "Check data export or provide default values for column 'role'."
+      },
+      {
+        "id": "UF-1793180003384-salary",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "error",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'salary' has 3 null/empty cells (100% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "salary",
+        "recommendation": "Check data export or provide default values for column 'salary'."
+      }
+    ],
+    "complianceScore": 70
+  },
+  {
+    "id": "TEST-UPLOAD-1",
+    "fileName": "student_resume_2025.pdf",
+    "fileType": "resume",
+    "timestamp": "2026-10-28T09:33:22.178Z",
+    "charCount": 1450,
+    "rowCount": 0,
+    "columnCount": 0,
+    "headers": [],
+    "samplePreview": "",
+    "customFindings": [],
+    "complianceScore": 100
+  },
+  {
+    "id": "UPL-MVRX0YHA-663",
+    "fileName": "audit_test.csv",
+    "fileType": "csv",
+    "timestamp": "2026-10-28T09:32:01.294Z",
+    "charCount": 57,
+    "rowCount": 3,
+    "columnCount": 4,
+    "headers": [
+      "id",
+      "name",
+      "role",
+      "salary"
+    ],
+    "samplePreview": "File: audit_test.csv\nType: CSV Spreadsheet\nTotal Rows: 3\nColumns: id, name, role, salary\n\n--- Sample Records (First 5) ---\n[Row 1] id: 1 | name: Alice | role: Engineer | salary: null\n[Row 2] id: 2 | name: Bob | role: null | salary: null\n[Row 3] id: 3 | name: Charlie | role: null | salary: null\n",
+    "customFindings": [
+      {
+        "id": "UF-1793179921294-role",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "warning",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'role' has 2 null/empty cells (67% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "role",
+        "recommendation": "Check data export or provide default values for column 'role'."
+      },
+      {
+        "id": "UF-1793179921294-salary",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "error",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'salary' has 3 null/empty cells (100% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "salary",
+        "recommendation": "Check data export or provide default values for column 'salary'."
+      }
+    ],
+    "complianceScore": 70
+  },
+  {
+    "id": "TEST-UPLOAD-1",
+    "fileName": "student_resume_2025.pdf",
+    "fileType": "resume",
+    "timestamp": "2026-10-28T09:31:01.870Z",
+    "charCount": 1450,
+    "rowCount": 0,
+    "columnCount": 0,
+    "headers": [],
+    "samplePreview": "",
+    "customFindings": [],
+    "complianceScore": 100
+  },
+  {
+    "id": "UPL-MVRWZNQA-777",
+    "fileName": "audit_test.csv",
+    "fileType": "csv",
+    "timestamp": "2026-10-28T09:31:00.706Z",
+    "charCount": 57,
+    "rowCount": 3,
+    "columnCount": 4,
+    "headers": [
+      "id",
+      "name",
+      "role",
+      "salary"
+    ],
+    "samplePreview": "File: audit_test.csv\nType: CSV Spreadsheet\nTotal Rows: 3\nColumns: id, name, role, salary\n\n--- Sample Records (First 5) ---\n[Row 1] id: 1 | name: Alice | role: Engineer | salary: null\n[Row 2] id: 2 | name: Bob | role: null | salary: null\n[Row 3] id: 3 | name: Charlie | role: null | salary: null\n",
+    "customFindings": [
+      {
+        "id": "UF-1793179860706-role",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "warning",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'role' has 2 null/empty cells (67% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "role",
+        "recommendation": "Check data export or provide default values for column 'role'."
+      },
+      {
+        "id": "UF-1793179860706-salary",
+        "ruleId": "TAB_HIGH_NULL_RATE",
+        "dataset": "uploaded_dataset",
+        "severity": "error",
+        "title": "High Null Value Rate in Column",
+        "description": "Column 'salary' has 3 null/empty cells (100% of rows).",
+        "recordId": "audit_test.csv",
+        "field": "salary",
+        "recommendation": "Check data export or provide default values for column 'salary'."
+      }
+    ],
+    "complianceScore": 70
+  },
+  {
+    "id": "TEST-UPLOAD-1",
+    "fileName": "student_resume_2025.pdf",
+    "fileType": "resume",
+    "timestamp": "2026-10-28T09:29:42.810Z",
+    "charCount": 1450,
+    "rowCount": 0,
+    "columnCount": 0,
+    "headers": [],
+    "samplePreview": "",
+    "customFindings": [],
+    "complianceScore": 100
+  }
+]

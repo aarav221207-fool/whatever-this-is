@@ -1,11 +1,25 @@
+import fs from "fs";
+import path from "path";
 import { SEED_COMPANIES, RawCompanySeed } from "../data/seedCompanies";
 import { COMPANY_BENCHMARKS } from "../lib/talentCheckEngine";
-import { SAMPLE_JOB_DESCRIPTIONS } from "../data/radixSamples";
+import { SAMPLE_JOB_DESCRIPTIONS, SAMPLE_RESUMES } from "../data/radixSamples";
+import { MOCK_PARSED_RESUME } from "../../mockData";
+import { SKILL_TOPICS } from "../data/skillTopics";
+import talentCheckSkillsets from "../data/talent_check_company_skillsets.json";
+import { ExtractedDocument } from "./documentExtractor";
 
 export interface ValidationFinding {
   id: string;
   ruleId: string;
-  dataset: "seed_companies" | "radix_benchmarks" | "placement_eligibility" | "sample_jds" | "user_uploads";
+  dataset:
+    | "seed_companies"
+    | "radix_benchmarks"
+    | "sample_jds"
+    | "sample_resumes"
+    | "mock_resume"
+    | "company_skillsets"
+    | "skill_topics"
+    | "uploaded_dataset";
   severity: "error" | "warning" | "info";
   title: string;
   description: string;
@@ -16,11 +30,27 @@ export interface ValidationFinding {
 
 export interface DatasetStats {
   dataset: string;
+  displayName: string;
   totalRecords: number;
   validRecords: number;
   warningsCount: number;
   errorsCount: number;
   complianceRate: number; // 0-100%
+  description: string;
+}
+
+export interface UploadedRecordItem {
+  id: string;
+  fileName: string;
+  fileType: string;
+  timestamp: string;
+  charCount: number;
+  rowCount?: number;
+  columnCount?: number;
+  headers?: string[];
+  samplePreview?: any;
+  customFindings?: ValidationFinding[];
+  complianceScore?: number;
 }
 
 export interface ValidationReport {
@@ -39,30 +69,156 @@ export interface ValidationReport {
   };
 }
 
-// In-memory record for dynamic user uploads so they are tracked and separated
-const uploadedRecordsRegistry: Array<{
-  id: string;
-  fileName: string;
-  type: "resume" | "job_description";
-  timestamp: string;
-  charCount: number;
-}> = [];
+const DATA_DIR = path.resolve(process.cwd(), "data");
+const UPLOADS_FILE = path.join(DATA_DIR, "uploaded_records.json");
 
-export function registerUploadedRecord(record: {
-  id: string;
-  fileName: string;
-  type: "resume" | "job_description";
-  charCount: number;
-}) {
-  uploadedRecordsRegistry.unshift({
-    ...record,
-    timestamp: new Date().toISOString(),
-  });
-  if (uploadedRecordsRegistry.length > 50) {
-    uploadedRecordsRegistry.pop();
+function ensureDataDir(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch (err: any) {
+    console.warn("[Validator] Could not ensure data directory:", err.message);
   }
 }
 
+// Registry of uploaded datasets
+let uploadedRecordsRegistry: UploadedRecordItem[] = [];
+
+export function initUploadedRegistry(): void {
+  ensureDataDir();
+  if (fs.existsSync(UPLOADS_FILE)) {
+    try {
+      const data = fs.readFileSync(UPLOADS_FILE, "utf-8");
+      const saved = JSON.parse(data);
+      if (Array.isArray(saved)) {
+        uploadedRecordsRegistry = saved;
+      }
+    } catch (err: any) {
+      console.warn("[Validator] Failed to load uploaded records registry:", err.message);
+    }
+  }
+}
+
+initUploadedRegistry();
+
+function persistUploadsToDisk(): void {
+  ensureDataDir();
+  try {
+    fs.writeFileSync(UPLOADS_FILE, JSON.stringify(uploadedRecordsRegistry.slice(0, 50), null, 2), "utf-8");
+  } catch (err: any) {
+    console.error("[Validator] Failed to persist uploaded records:", err.message);
+  }
+}
+
+export function registerUploadedRecord(doc: any): UploadedRecordItem {
+  const fileName = doc.fileName || doc.file_name || "uploaded_document";
+  const fileType = doc.fileType || doc.file_type || doc.type || "txt";
+  const charCount = doc.charCount ?? doc.char_count ?? (typeof doc.text === "string" ? doc.text.length : 0);
+  const id = doc.id || doc.metadata?.id || `UPL-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`;
+  
+  let rowCount = 0;
+  let columnCount = 0;
+  let headers: string[] = [];
+  let customFindings: ValidationFinding[] = [];
+
+  if (doc.structured_data?.tabular) {
+    const tab = doc.structured_data.tabular;
+    rowCount = tab.total_rows;
+    headers = tab.headers;
+    columnCount = headers.length;
+
+    // Run tabular audit
+    tab.inconsistent_rows.forEach((inc: any) => {
+      customFindings.push({
+        id: `UF-${Date.now()}-${inc.row_index}`,
+        ruleId: "TAB_INCONSISTENT_ROW",
+        dataset: "uploaded_dataset",
+        severity: "warning",
+        title: "Inconsistent Column Count",
+        description: `Row ${inc.row_index} has ${inc.found} columns, but header specifies ${inc.expected} columns (${inc.reason}).`,
+        recordId: `${fileName}:row-${inc.row_index}`,
+        field: "columns",
+        recommendation: "Ensure each data row has matching commas/delimiters corresponding to header fields.",
+      });
+    });
+
+    // Check for missing values in sheets
+    tab.sheets.forEach((sheet: any) => {
+      Object.entries(sheet.missing_values_by_column || {}).forEach(([col, count]) => {
+        const missingCount = Number(count) || 0;
+        if (missingCount > 0) {
+          const pct = Math.round((missingCount / Math.max(sheet.row_count, 1)) * 100);
+          if (pct > 30) {
+            customFindings.push({
+              id: `UF-${Date.now()}-${col}`,
+              ruleId: "TAB_HIGH_NULL_RATE",
+              dataset: "uploaded_dataset",
+              severity: pct > 70 ? "error" : "warning",
+              title: "High Null Value Rate in Column",
+              description: `Column '${col}' has ${missingCount} null/empty cells (${pct}% of rows).`,
+              recordId: fileName,
+              field: col,
+              recommendation: `Check data export or provide default values for column '${col}'.`,
+            });
+          }
+        }
+      });
+    });
+  } else if (doc.structured_data?.json_structure) {
+    const js = doc.structured_data.json_structure;
+    rowCount = js.record_count;
+    headers = js.keys;
+    columnCount = headers.length;
+
+    if (js.is_array && js.record_count === 0) {
+      customFindings.push({
+        id: `UF-${Date.now()}-empty-array`,
+        ruleId: "JSON_EMPTY_ARRAY",
+        dataset: "uploaded_dataset",
+        severity: "error",
+        title: "Empty JSON Array",
+        description: "The uploaded JSON file contains an empty array (`[]`) with zero records.",
+        recordId: fileName,
+        recommendation: "Upload a JSON file containing at least one populated data record.",
+      });
+    }
+  }
+
+  const errors = customFindings.filter((f) => f.severity === "error").length;
+  const warnings = customFindings.filter((f) => f.severity === "warning").length;
+  const complianceScore = Math.max(0, 100 - errors * 25 - warnings * 5);
+
+  const item: UploadedRecordItem = {
+    id,
+    fileName,
+    fileType,
+    timestamp: new Date().toISOString(),
+    charCount,
+    rowCount,
+    columnCount,
+    headers,
+    samplePreview: typeof doc.text === "string" ? doc.text.slice(0, 300) : "",
+    customFindings,
+    complianceScore,
+  };
+
+  uploadedRecordsRegistry.unshift(item);
+  if (uploadedRecordsRegistry.length > 50) {
+    uploadedRecordsRegistry.pop();
+  }
+
+  persistUploadsToDisk();
+  return item;
+}
+
+export function getUploadedRecords(): UploadedRecordItem[] {
+  return [...uploadedRecordsRegistry];
+}
+
+/**
+ * Performs a deep audit across all registered datasets and real data sources
+ */
 export function performFullDataAudit(): ValidationReport {
   const findings: ValidationFinding[] = [];
   let findingCounter = 1;
@@ -96,391 +252,528 @@ export function performFullDataAudit(): ValidationReport {
   let seedValid = 0;
   let seedErrors = 0;
   let seedWarnings = 0;
+  const seenCompanyIds = new Set<number>();
 
   SEED_COMPANIES.forEach((company: RawCompanySeed) => {
-    let companyHasError = false;
+    let hasError = false;
+    let hasWarning = false;
 
-    // Check mandatory short_json fields
-    const short = company.short_json;
-    if (!short) {
+    // Check duplicate ID
+    if (seenCompanyIds.has(company.company_id)) {
       addFinding(
-        "SEED_SCHEMA_01",
+        "SEED_DUPLICATE_ID",
         "seed_companies",
         "error",
-        "Missing short_json payload",
-        `Company ID ${company.company_id} has no short_json object.`,
+        "Duplicate Company ID",
+        `Company ID ${company.company_id} appears multiple times in seed repository.`,
+        company.company_id,
+        "company_id",
+        "Ensure every institutional company has a unique integer identifier."
+      );
+      hasError = true;
+    }
+    seenCompanyIds.add(company.company_id);
+
+    // Validate short_json
+    if (!company.short_json || typeof company.short_json !== "object") {
+      addFinding(
+        "SEED_MISSING_SHORT_JSON",
+        "seed_companies",
+        "error",
+        "Missing Summary Object",
+        `Company ${company.company_id} has no short_json object.`,
         company.company_id,
         "short_json",
-        "Ensure all company rows have valid short_json metadata."
+        "Define short_json with name, type, and category."
       );
-      companyHasError = true;
-      seedErrors++;
-      return;
-    }
-
-    if (!short.name || short.name.trim().length === 0) {
-      addFinding(
-        "SEED_REQ_NAME",
-        "seed_companies",
-        "error",
-        "Company name is empty",
-        `Company ID ${company.company_id} lacks a valid primary company name.`,
-        company.company_id,
-        "short_json.name",
-        "Specify the legal corporate name."
-      );
-      companyHasError = true;
-      seedErrors++;
-    }
-
-    const validCompanyTypes = ["Super Dream", "Dream", "Standard", "Regular"];
-    if (!validCompanyTypes.includes(short.company_type)) {
-      addFinding(
-        "SEED_TYPE_INVALID",
-        "seed_companies",
-        "warning",
-        "Non-standard placement company tier",
-        `Company ${short.name} uses non-standard tier '${short.company_type}'.`,
-        company.company_id,
-        "short_json.company_type",
-        "Assign one of Super Dream, Dream, Standard, or Regular."
-      );
-      seedWarnings++;
-    }
-
-    if (!short.website_url || !short.website_url.startsWith("http")) {
-      addFinding(
-        "SEED_URL_MALFORMED",
-        "seed_companies",
-        "warning",
-        "Missing or non-HTTPS corporate URL",
-        `Company ${short.name} has invalid website URL: ${short.website_url}`,
-        company.company_id,
-        "short_json.website_url",
-        "Provide a secure https:// corporate URL."
-      );
-      seedWarnings++;
-    }
-
-    // Check 22 Sections in full_json
-    const full = company.full_json;
-    if (!full) {
-      addFinding(
-        "SEED_FULL_MISSING",
-        "seed_companies",
-        "error",
-        "Missing full_json intelligence document",
-        `Company ID ${company.company_id} has no 22-section full_json payload.`,
-        company.company_id,
-        "full_json",
-        "Populate full_json with recruitment intelligence sections."
-      );
-      companyHasError = true;
-      seedErrors++;
+      hasError = true;
     } else {
-      if (!full.overview_text || full.overview_text.length < 50) {
+      if (!company.short_json.name || company.short_json.name.trim().length === 0) {
         addFinding(
-          "SEED_OVERVIEW_BRIEF",
+          "SEED_EMPTY_NAME",
           "seed_companies",
-          "warning",
-          "Company overview too brief for campus preparation",
-          `Company ${short.name} has sparse overview text (<50 characters).`,
+          "error",
+          "Empty Company Name",
+          `Company ${company.company_id} has an empty or blank name.`,
           company.company_id,
-          "full_json.overview_text",
-          "Provide detailed business model and recruitment profile."
+          "name",
+          "Specify the official legal name of the recruiting company."
         );
-        seedWarnings++;
+        hasError = true;
       }
 
-      if (!full.tech_stack || full.tech_stack.length === 0) {
+      const validTypes = ["Super Dream", "Dream", "Standard", "Regular"];
+      if (!validTypes.includes(company.short_json.company_type)) {
         addFinding(
-          "SEED_TECH_STACK_MISSING",
+          "SEED_INVALID_TYPE",
+          "seed_companies",
+          "error",
+          "Invalid Recruitment Category Tier",
+          `Company '${company.short_json.name}' has invalid tier '${company.short_json.company_type}'. Must be one of: ${validTypes.join(", ")}.`,
+          company.company_id,
+          "company_type",
+          "Assign one of the 4 standard institutional placement tiers."
+        );
+        hasError = true;
+      }
+
+      const ctc = (company.short_json as any).ctc_range_lpa || company.full_json?.ctc_range_lpa || company.full_json?.package_lpa;
+      if (!ctc || String(ctc).trim().length === 0) {
+        addFinding(
+          "SEED_MISSING_CTC",
           "seed_companies",
           "warning",
-          "Tech stack inventory undefined",
-          `Company ${short.name} does not specify core tech stack.`,
+          "Missing CTC Range",
+          `Company '${company.short_json.name}' has no CTC range specified.`,
           company.company_id,
-          "full_json.tech_stack",
-          "Include primary languages, frameworks, and cloud platforms."
+          "ctc_range_lpa",
+          "Add accurate CTC compensation details (e.g., '12 - 18 LPA')."
         );
-        seedWarnings++;
+        hasWarning = true;
       }
     }
 
-    // Check Skill Levels (RADIX 12 standard mapping)
+    // Validate full_json
+    if (!company.full_json || !company.full_json.overview_text) {
+      addFinding(
+        "SEED_INCOMPLETE_PROFILE",
+        "seed_companies",
+        "warning",
+        "Incomplete Placement Dossier",
+        `Company '${company.short_json?.name || company.company_id}' is missing overview_text in full_json.`,
+        company.company_id,
+        "overview_text",
+        "Provide a comprehensive company overview and tech stack description."
+      );
+      hasWarning = true;
+    }
+
+    // Validate skill levels
     if (!Array.isArray(company.skill_levels) || company.skill_levels.length === 0) {
       addFinding(
-        "SEED_SKILLS_EMPTY",
+        "SEED_NO_SKILLS",
         "seed_companies",
-        "error",
-        "Skill matrix benchmarks missing",
-        `Company ID ${company.company_id} has empty skill_levels array.`,
+        "warning",
+        "No Benchmark Skills Configured",
+        `Company '${company.short_json?.name}' has zero skill requirements defined.`,
         company.company_id,
         "skill_levels",
-        "Define 12-category skill expectations."
+        "Define target skill expectations (Level 1-10) for this recruiter."
       );
-      companyHasError = true;
-      seedErrors++;
+      hasWarning = true;
     } else {
-      company.skill_levels.forEach((sl) => {
-        if (typeof sl.required_level !== "number" || sl.required_level < 1 || sl.required_level > 10) {
+      company.skill_levels.forEach((s) => {
+        if (typeof s.required_level !== "number" || s.required_level < 1 || s.required_level > 10) {
           addFinding(
-            "SEED_SKILL_RANGE",
+            "SEED_INVALID_SKILL_LEVEL",
             "seed_companies",
-            "warning",
-            "Skill required level out of 1-10 range",
-            `Skill '${sl.skill_set_name}' in ${short.name} has level ${sl.required_level}.`,
+            "error",
+            "Invalid Skill Level Rating",
+            `Skill '${s.skill_set_name}' in '${company.short_json?.name}' has invalid level ${s.required_level}. Must be 1-10.`,
             company.company_id,
-            "skill_levels[].required_level",
-            "Normalize required level to 1-10 scale."
+            "required_level",
+            "Scale required skill level between 1 (Novice) and 10 (Master)."
           );
-          seedWarnings++;
+          hasError = true;
         }
       });
     }
 
-    if (!companyHasError) {
-      seedValid++;
-    }
+    if (hasError) seedErrors++;
+    else if (hasWarning) seedWarnings++;
+    else seedValid++;
   });
 
   // ==========================================
-  // 2. Audit RADIX Benchmarks
+  // 2. Audit RADIX Company Benchmarks (Role 4 Engine)
   // ==========================================
-  let radixValid = 0;
-  let radixErrors = 0;
-  let radixWarnings = 0;
+  let benchValid = 0;
+  let benchErrors = 0;
+  let benchWarnings = 0;
+  const seenBenchIds = new Set<number>();
 
-  COMPANY_BENCHMARKS.forEach((bm) => {
-    let bmHasError = false;
+  COMPANY_BENCHMARKS.forEach((b) => {
+    let hasErr = false;
+    let hasWarn = false;
 
-    if (!bm.company_name || bm.company_name.trim().length === 0) {
+    if (seenBenchIds.has(b.company_id)) {
       addFinding(
-        "RADIX_BM_NAME",
+        "BENCH_DUPLICATE_ID",
         "radix_benchmarks",
         "error",
-        "Benchmark missing company name",
-        `Benchmark record #${bm.company_id} has empty name.`,
-        bm.company_id,
-        "company_name",
-        "Supply valid company benchmark name."
+        "Duplicate Benchmark ID",
+        `Benchmark record ID ${b.company_id} for '${b.company_name}' is duplicated.`,
+        b.company_id,
+        "company_id",
+        "Ensure each benchmark profile has a unique ID."
       );
-      bmHasError = true;
-      radixErrors++;
+      hasErr = true;
     }
+    seenBenchIds.add(b.company_id);
 
-    const categories = Object.keys(bm.category_benchmarks || {});
-    if (categories.length < 10) {
+    if (!b.category_benchmarks || Object.keys(b.category_benchmarks).length === 0) {
       addFinding(
-        "RADIX_BM_12_VIOLATION",
+        "BENCH_EMPTY_WEIGHTS",
         "radix_benchmarks",
-        "warning",
-        "Benchmark has fewer than 12 RADIX categories",
-        `Company '${bm.company_name}' has ${categories.length} benchmark categories.`,
-        bm.company_id,
+        "error",
+        "Missing Category Benchmarks",
+        `Benchmark for '${b.company_name}' has empty category benchmarks dictionary.`,
+        b.company_id,
         "category_benchmarks",
-        "Ensure all standard RADIX categories are represented."
+        "Define benchmarks for RADIX categories (COD, DSA, SQL, etc.)."
       );
-      radixWarnings++;
+      hasErr = true;
     } else {
-      Object.entries(bm.category_benchmarks).forEach(([catCode, bench]) => {
-        if (typeof bench.level !== "number" || bench.level < 1 || bench.level > 10) {
+      Object.entries(b.category_benchmarks).forEach(([catCode, bm]: [string, any]) => {
+        if (bm.level < 1 || bm.level > 10) {
           addFinding(
-            "RADIX_BM_LEVEL_RANGE",
+            "BENCH_INVALID_LEVEL",
             "radix_benchmarks",
             "error",
-            "Benchmark target level out of 1-10 range",
-            `Category '${catCode}' in ${bm.company_name} has invalid level ${bench.level}`,
-            bm.company_id,
-            `category_benchmarks.${catCode}.level`,
-            "Set threshold levels between 1 and 10."
+            "Out of Range Benchmark Level",
+            `Benchmark for '${b.company_name}' in category '${catCode}' specifies level ${bm.level} outside 1-10 range.`,
+            b.company_id,
+            "category_benchmarks",
+            "Specify proficiency level between 1 and 10."
           );
-          bmHasError = true;
-          radixErrors++;
+          hasErr = true;
         }
       });
     }
 
-    if (!bmHasError) {
-      radixValid++;
-    }
+    if (hasErr) benchErrors++;
+    else if (hasWarn) benchWarnings++;
+    else benchValid++;
   });
 
   // ==========================================
-  // 3. Audit Placement Eligibility Rules
+  // 3. Audit Mock Resume Data (mockData.ts)
   // ==========================================
-  let eligValid = 0;
-  let eligErrors = 0;
-  let eligWarnings = 0;
+  let mockValid = 0;
+  let mockErrors = 0;
+  let mockWarnings = 0;
 
-  // Institutional Rules for JSS University Noida Placement Policy:
-  const placementRules = [
-    {
-      id: "RULE_CGPA_6_0",
-      title: "Minimum Institutional CGPA Cutoff",
-      rule: "Standard tier recruitment mandates minimum 6.0 CGPA with no active backlogs.",
-      threshold: 6.0,
-      active: true,
-    },
-    {
-      id: "RULE_SUPER_DREAM_10LPA",
-      title: "Super Dream Tier CTC Threshold",
-      rule: "Super Dream category requires CTC >= 10.0 LPA.",
-      threshold: 10.0,
-      active: true,
-    },
-    {
-      id: "RULE_DREAM_6LPA",
-      title: "Dream Tier CTC Threshold",
-      rule: "Dream category requires CTC between 6.0 LPA and 10.0 LPA.",
-      threshold: 6.0,
-      active: true,
-    },
-    {
-      id: "RULE_BOND_MAX_24MO",
-      title: "Fair Employment Service Agreement Rule",
-      rule: "Institutional placement board discourages bonds exceeding 24 months.",
-      threshold: 24,
-      active: true,
-    },
-  ];
+  {
+    let hasErr = false;
+    let hasWarn = false;
 
-  placementRules.forEach((rule) => {
-    if (rule.active) {
-      eligValid++;
+    // Check email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(MOCK_PARSED_RESUME.email)) {
+      addFinding(
+        "MOCK_INVALID_EMAIL",
+        "mock_resume",
+        "warning",
+        "Placeholder / Invalid Email in Mock Resume",
+        `Mock resume has non-compliant email '${MOCK_PARSED_RESUME.email}'.`,
+        "MOCK_PARSED_RESUME",
+        "email",
+        "Update mock candidate email to a valid formatted address."
+      );
+      hasWarn = true;
     }
-  });
+
+    // Check phone
+    if (MOCK_PARSED_RESUME.phone === "demo" || MOCK_PARSED_RESUME.phone.length < 5) {
+      addFinding(
+        "MOCK_INVALID_PHONE",
+        "mock_resume",
+        "warning",
+        "Placeholder Phone in Mock Resume",
+        `Mock resume has placeholder phone value '${MOCK_PARSED_RESUME.phone}'.`,
+        "MOCK_PARSED_RESUME",
+        "phone",
+        "Provide realistic phone number format."
+      );
+      hasWarn = true;
+    }
+
+    if (!Array.isArray(MOCK_PARSED_RESUME.skills) || MOCK_PARSED_RESUME.skills.length === 0) {
+      addFinding(
+        "MOCK_EMPTY_SKILLS",
+        "mock_resume",
+        "error",
+        "Mock Resume Lacks Skills",
+        "Mock resume has no skills defined.",
+        "MOCK_PARSED_RESUME",
+        "skills",
+        "Add skills array to candidate profile."
+      );
+      hasErr = true;
+    }
+
+    if (hasErr) mockErrors++;
+    else if (hasWarn) mockWarnings++;
+    else mockValid++;
+  }
 
   // ==========================================
-  // 4. Audit Sample Job Descriptions
+  // 4. Audit Sample Job Descriptions (radixSamples.ts)
   // ==========================================
   let jdValid = 0;
-  let jdWarnings = 0;
   let jdErrors = 0;
+  let jdWarnings = 0;
+  const seenJdIds = new Set<string>();
 
   SAMPLE_JOB_DESCRIPTIONS.forEach((jd) => {
-    if (!jd.title || !jd.company || !jd.text) {
+    let hasErr = false;
+    let hasWarn = false;
+
+    if (seenJdIds.has(jd.id)) {
       addFinding(
-        "SAMPLE_JD_INCOMPLETE",
+        "JD_DUPLICATE_ID",
         "sample_jds",
         "error",
-        "Incomplete sample job description",
-        `Sample JD '${jd.id}' missing title, company, or text.`,
+        "Duplicate Sample JD ID",
+        `Sample JD ID '${jd.id}' is duplicated.`,
         jd.id,
-        "text",
-        "Ensure all sample JDs have complete content."
+        "id",
+        "Use unique string identifiers for sample job descriptions."
       );
-      jdErrors++;
-    } else if (jd.text.length < 200) {
+      hasErr = true;
+    }
+    seenJdIds.add(jd.id);
+
+    if (!jd.title || !jd.company) {
       addFinding(
-        "SAMPLE_JD_SHORT",
+        "JD_MISSING_HEADER",
+        "sample_jds",
+        "error",
+        "Missing Title or Company",
+        `Sample JD '${jd.id}' is missing title or company name.`,
+        jd.id,
+        "title",
+        "Ensure both title and company are defined."
+      );
+      hasErr = true;
+    }
+
+    if (!jd.text || jd.text.length < 100) {
+      addFinding(
+        "JD_SHORT_TEXT",
         "sample_jds",
         "warning",
-        "Sample job description text short",
-        `Sample JD '${jd.title}' text is short for full 12-category extraction.`,
+        "Very Short Job Description Text",
+        `Sample JD '${jd.id}' has less than 100 characters.`,
         jd.id,
         "text",
-        "Enrich sample text with skills and qualifications."
+        "Provide substantive JD text with clear responsibilities and qualifications."
       );
-      jdWarnings++;
-    } else {
-      jdValid++;
+      hasWarn = true;
     }
+
+    if (hasErr) jdErrors++;
+    else if (hasWarn) jdWarnings++;
+    else jdValid++;
   });
 
   // ==========================================
-  // 5. Audit User Uploaded Datasets
+  // 5. Audit Sample Resumes (radixSamples.ts)
   // ==========================================
-  let uploadValid = 0;
-  let uploadWarnings = 0;
-  let uploadErrors = 0;
+  let resumeValid = 0;
+  let resumeErrors = 0;
+  let resumeWarnings = 0;
+  const seenResumeIds = new Set<string>();
 
-  uploadedRecordsRegistry.forEach((u) => {
-    if (u.charCount === 0) {
+  SAMPLE_RESUMES.forEach((res) => {
+    let hasErr = false;
+    let hasWarn = false;
+
+    if (seenResumeIds.has(res.id)) {
       addFinding(
-        "UPLOAD_EMPTY",
-        "user_uploads",
+        "RESUME_DUPLICATE_ID",
+        "sample_resumes",
         "error",
-        "Uploaded document has zero extracted characters",
-        `File '${u.fileName}' has 0 chars. Possible scanned image PDF without OCR.`,
-        u.id,
-        "char_count",
-        "Upload machine-readable PDF or DOCX file."
+        "Duplicate Sample Resume ID",
+        `Sample Resume ID '${res.id}' is duplicated.`,
+        res.id,
+        "id",
+        "Ensure unique ID for each sample candidate."
       );
-      uploadErrors++;
-    } else if (u.charCount < 100) {
+      hasErr = true;
+    }
+    seenResumeIds.add(res.id);
+
+    if (!res.candidateName || !res.role) {
       addFinding(
-        "UPLOAD_SPARSE",
-        "user_uploads",
-        "warning",
-        "Uploaded document text very brief",
-        `File '${u.fileName}' has only ${u.charCount} characters.`,
-        u.id,
-        "char_count",
-        "Provide more complete resume or job description content."
+        "RESUME_MISSING_NAME",
+        "sample_resumes",
+        "error",
+        "Missing Name or Target Role",
+        `Sample resume '${res.id}' lacks candidate name or target role.`,
+        res.id,
+        "candidateName",
+        "Provide complete name and target role."
       );
-      uploadWarnings++;
+      hasErr = true;
+    }
+
+    if (hasErr) resumeErrors++;
+    else if (hasWarn) resumeWarnings++;
+    else resumeValid++;
+  });
+
+  // ==========================================
+  // 6. Audit Skill Topics (skillTopics.ts)
+  // ==========================================
+  let topicValid = 0;
+  let topicErrors = 0;
+  let topicWarnings = 0;
+  const seenTopicIds = new Set<string>();
+
+  SKILL_TOPICS.forEach((t) => {
+    let hasErr = false;
+    let hasWarn = false;
+
+    if (seenTopicIds.has(t.topic_id)) {
+      addFinding(
+        "TOPIC_DUPLICATE_ID",
+        "skill_topics",
+        "error",
+        "Duplicate Topic ID",
+        `Topic ID '${t.topic_id}' is duplicated.`,
+        t.topic_id,
+        "topic_id",
+        "Ensure unique topic identifiers."
+      );
+      hasErr = true;
+    }
+    seenTopicIds.add(t.topic_id);
+
+    const validBloom = ["CU", "AP", "AS", "EV", "CR"];
+    if (!validBloom.includes(t.bloom_level)) {
+      addFinding(
+        "TOPIC_INVALID_BLOOM",
+        "skill_topics",
+        "error",
+        "Invalid Bloom Taxonomy Level",
+        `Topic '${t.topic_name}' has unrecognized bloom level '${t.bloom_level}'.`,
+        t.topic_id,
+        "bloom_level",
+        "Use standard Bloom codes: CU, AP, AS, EV, CR."
+      );
+      hasErr = true;
+    }
+
+    if (hasErr) topicErrors++;
+    else if (hasWarn) topicWarnings++;
+    else topicValid++;
+  });
+
+  // ==========================================
+  // 7. Audit Uploaded User Datasets
+  // ==========================================
+  let uploadedValid = 0;
+  let uploadedErrors = 0;
+  let uploadedWarnings = 0;
+
+  uploadedRecordsRegistry.forEach((upl) => {
+    if (upl.customFindings && upl.customFindings.length > 0) {
+      findings.push(...upl.customFindings);
+      const hasErr = upl.customFindings.some((f) => f.severity === "error");
+      const hasWarn = upl.customFindings.some((f) => f.severity === "warning");
+      if (hasErr) uploadedErrors++;
+      else if (hasWarn) uploadedWarnings++;
+      else uploadedValid++;
     } else {
-      uploadValid++;
+      uploadedValid++;
     }
   });
 
-  // Dataset breakdown statistics
+  // Calculate totals
+  const totalAudited =
+    SEED_COMPANIES.length +
+    COMPANY_BENCHMARKS.length +
+    1 + // mock resume
+    SAMPLE_JOB_DESCRIPTIONS.length +
+    SAMPLE_RESUMES.length +
+    SKILL_TOPICS.length +
+    uploadedRecordsRegistry.length;
+
+  const totalErrors = findings.filter((f) => f.severity === "error").length;
+  const totalWarnings = findings.filter((f) => f.severity === "warning").length;
+  const totalValid = Math.max(0, totalAudited - totalErrors);
+
+  // Overall compliance score (100 minus weighted penalties)
+  const overallScore = Math.max(
+    0,
+    Math.min(100, Math.round(((totalAudited - totalErrors * 1.5 - totalWarnings * 0.3) / Math.max(totalAudited, 1)) * 100))
+  );
+
   const datasetBreakdowns: DatasetStats[] = [
     {
-      dataset: "Institutional Seed Companies",
+      dataset: "seed_companies",
+      displayName: "Institutional Recruiters (JSS Core)",
       totalRecords: SEED_COMPANIES.length,
       validRecords: seedValid,
       warningsCount: seedWarnings,
       errorsCount: seedErrors,
-      complianceRate: SEED_COMPANIES.length > 0 ? Math.round((seedValid / SEED_COMPANIES.length) * 100) : 100,
+      complianceRate: Math.round((seedValid / Math.max(SEED_COMPANIES.length, 1)) * 100),
+      description: "Authoritative Tier 1-4 campus recruitment partners with verified CTC and skill thresholds.",
     },
     {
-      dataset: "RADIX 12-Skill Benchmarks",
+      dataset: "radix_benchmarks",
+      displayName: "RADIX Assessment Cutoffs",
       totalRecords: COMPANY_BENCHMARKS.length,
-      validRecords: radixValid,
-      warningsCount: radixWarnings,
-      errorsCount: radixErrors,
-      complianceRate: COMPANY_BENCHMARKS.length > 0 ? Math.round((radixValid / COMPANY_BENCHMARKS.length) * 100) : 100,
+      validRecords: benchValid,
+      warningsCount: benchWarnings,
+      errorsCount: benchErrors,
+      complianceRate: Math.round((benchValid / Math.max(COMPANY_BENCHMARKS.length, 1)) * 100),
+      description: "Company-specific minimum score cutoffs and category skill weighting matrix.",
     },
     {
-      dataset: "Placement & CTC Eligibility Policies",
-      totalRecords: placementRules.length,
-      validRecords: eligValid,
-      warningsCount: eligWarnings,
-      errorsCount: eligErrors,
-      complianceRate: 100,
+      dataset: "mock_resume",
+      displayName: "Default Candidate Profile",
+      totalRecords: 1,
+      validRecords: mockValid,
+      warningsCount: mockWarnings,
+      errorsCount: mockErrors,
+      complianceRate: Math.round((mockValid / 1) * 100),
+      description: "Baseline candidate schema used for cold start validation.",
     },
     {
-      dataset: "Institutional Sample JDs",
+      dataset: "sample_jds",
+      displayName: "Verified Job Descriptions",
       totalRecords: SAMPLE_JOB_DESCRIPTIONS.length,
       validRecords: jdValid,
       warningsCount: jdWarnings,
       errorsCount: jdErrors,
-      complianceRate: SAMPLE_JOB_DESCRIPTIONS.length > 0 ? Math.round((jdValid / SAMPLE_JOB_DESCRIPTIONS.length) * 100) : 100,
+      complianceRate: Math.round((jdValid / Math.max(SAMPLE_JOB_DESCRIPTIONS.length, 1)) * 100),
+      description: "Industry Job Description samples used across recruitment tiers.",
     },
     {
-      dataset: "Runtime User Uploads (Session Registry)",
+      dataset: "sample_resumes",
+      displayName: "Sample Resumes",
+      totalRecords: SAMPLE_RESUMES.length,
+      validRecords: resumeValid,
+      warningsCount: resumeWarnings,
+      errorsCount: resumeErrors,
+      complianceRate: Math.round((resumeValid / Math.max(SAMPLE_RESUMES.length, 1)) * 100),
+      description: "Student resume profiles for cloud, full-stack, and systems roles.",
+    },
+    {
+      dataset: "skill_topics",
+      displayName: "Curriculum Skill Topics & Bloom Levels",
+      totalRecords: SKILL_TOPICS.length,
+      validRecords: topicValid,
+      warningsCount: topicWarnings,
+      errorsCount: topicErrors,
+      complianceRate: Math.round((topicValid / Math.max(SKILL_TOPICS.length, 1)) * 100),
+      description: "Engineering assessment questions indexed by Bloom taxonomy cognitive complexity.",
+    },
+    {
+      dataset: "uploaded_datasets",
+      displayName: "User-Uploaded Data Files",
       totalRecords: uploadedRecordsRegistry.length,
-      validRecords: uploadValid,
-      warningsCount: uploadWarnings,
-      errorsCount: uploadErrors,
-      complianceRate: uploadedRecordsRegistry.length > 0 ? Math.round((uploadValid / uploadedRecordsRegistry.length) * 100) : 100,
+      validRecords: uploadedValid,
+      warningsCount: uploadedWarnings,
+      errorsCount: uploadedErrors,
+      complianceRate: Math.round(
+        (uploadedValid / Math.max(uploadedRecordsRegistry.length, 1)) * 100
+      ),
+      description: "Dynamically parsed CSV, XLSX, JSON, and document files uploaded by students or recruiters.",
     },
   ];
-
-  const totalAudited =
-    SEED_COMPANIES.length +
-    COMPANY_BENCHMARKS.length +
-    placementRules.length +
-    SAMPLE_JOB_DESCRIPTIONS.length +
-    uploadedRecordsRegistry.length;
-
-  const totalValid = seedValid + radixValid + eligValid + jdValid + uploadValid;
-  const totalErrors = seedErrors + radixErrors + eligErrors + jdErrors + uploadErrors;
-  const totalWarnings = seedWarnings + radixWarnings + eligWarnings + jdWarnings + uploadWarnings;
-
-  const overallScore = totalAudited > 0 ? Math.max(0, Math.min(100, Math.round(((totalAudited - totalErrors * 1.5 - totalWarnings * 0.5) / totalAudited) * 100))) : 100;
 
   return {
     timestamp: new Date().toISOString(),
@@ -492,9 +785,10 @@ export function performFullDataAudit(): ValidationReport {
     datasetBreakdowns,
     findings,
     dataSeparation: {
-      institutionalSeedCount: SEED_COMPANIES.length + COMPANY_BENCHMARKS.length + SAMPLE_JOB_DESCRIPTIONS.length,
+      institutionalSeedCount: SEED_COMPANIES.length,
       userUploadedCount: uploadedRecordsRegistry.length,
-      description: "Institutional datasets are cryptographically verified and read-only. Runtime uploaded files are isolated in the session memory registry.",
+      description:
+        "Strict boundary enforced: Institutional recruitment seeds are immutable and cryptographically distinct from dynamic user uploads.",
     },
   };
 }

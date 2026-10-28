@@ -1,0 +1,1960 @@
+[
+  {
+    "runId": "RUN-MVRX6K7P-892",
+    "timestamp": "2026-10-28T09:36:23.109Z",
+    "targetCompany": "Accenture",
+    "role": "Cloud Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 368,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Accenture."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 15,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for GEMINI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 352,
+        "details": "LLM inference failed: {\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}"
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: {\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}"
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX6K7P-892 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "gemini",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "{\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Cloud Engineer at Accenture. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Accenture technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Accenture's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX6JOR-566",
+    "timestamp": "2026-10-28T09:36:22.060Z",
+    "targetCompany": "Amazon",
+    "role": "Software Development Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 1,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Amazon."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 1,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX6JOR-566 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Software Development Engineer at Amazon. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Amazon technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Amazon's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX6JOF-730",
+    "timestamp": "2026-10-28T09:36:22.057Z",
+    "targetCompany": "Microsoft",
+    "role": "Azure Solutions Architect",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 10,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Microsoft."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 10,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX6JOF-730 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Azure Solutions Architect at Microsoft. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Microsoft technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Microsoft's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX6JNV-381",
+    "timestamp": "2026-10-28T09:36:22.044Z",
+    "targetCompany": "Google",
+    "role": "Site Reliability Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 17,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Google."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 17,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "error",
+        "durationMs": 0,
+        "details": "AI inference did not produce a valid result. Fallback is disabled to prevent ungrounded outputs."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX6JNV-381 [FAILED] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "failed",
+    "isFallback": false,
+    "errorMessage": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX2OZL-289",
+    "timestamp": "2026-10-28T09:33:22.306Z",
+    "targetCompany": "Amazon",
+    "role": "Software Development Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 1,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Amazon."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 1,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX2OZL-289 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Software Development Engineer at Amazon. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Amazon technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Amazon's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX2OYZ-939",
+    "timestamp": "2026-10-28T09:33:22.297Z",
+    "targetCompany": "Microsoft",
+    "role": "Azure Solutions Architect",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 14,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Microsoft."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 13,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 1,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX2OYZ-939 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Azure Solutions Architect at Microsoft. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Microsoft technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Microsoft's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX2OY8-201",
+    "timestamp": "2026-10-28T09:33:22.280Z",
+    "targetCompany": "Google",
+    "role": "Site Reliability Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 24,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Google."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 24,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "error",
+        "durationMs": 0,
+        "details": "AI inference did not produce a valid result. Fallback is disabled to prevent ungrounded outputs."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX2OY8-201 [FAILED] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "failed",
+    "isFallback": false,
+    "errorMessage": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX2NE9-525",
+    "timestamp": "2026-10-28T09:33:20.259Z",
+    "targetCompany": "Accenture",
+    "role": "Cloud Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 18,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Accenture."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 16,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for GEMINI (gemini-3.8-flash)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 1,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX2NE9-525 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "gemini",
+    "modelUsed": "gemini-3.8-flash",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Cloud Engineer at Accenture. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Accenture technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Accenture's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX0XBB-367",
+    "timestamp": "2026-10-28T09:31:59.784Z",
+    "targetCompany": "Amazon",
+    "role": "Software Development Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 1,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Amazon."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 1,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX0XBB-367 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Software Development Engineer at Amazon. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Amazon technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Amazon's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX0XAO-598",
+    "timestamp": "2026-10-28T09:31:59.780Z",
+    "targetCompany": "Microsoft",
+    "role": "Azure Solutions Architect",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 20,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Microsoft."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 19,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 1,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX0XAO-598 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Azure Solutions Architect at Microsoft. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Microsoft technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Microsoft's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX0X9Y-824",
+    "timestamp": "2026-10-28T09:31:59.756Z",
+    "targetCompany": "Google",
+    "role": "Site Reliability Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 22,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Google."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 22,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "error",
+        "durationMs": 0,
+        "details": "AI inference did not produce a valid result. Fallback is disabled to prevent ungrounded outputs."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX0X9Y-824 [FAILED] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "failed",
+    "isFallback": false,
+    "errorMessage": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRX0VSG-492",
+    "timestamp": "2026-10-28T09:31:58.443Z",
+    "targetCompany": "Accenture",
+    "role": "Cloud Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 635,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Accenture."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 28,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 607,
+        "details": "LLM inference failed: AI Provider HTTP 401: {\n  \"error\": {\n    \"message\": \"Incorrect API key provided: sk-test-***************5678. You can find your API key at https://platform.openai.com/account/api-keys.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"invalid_api_key\",\n    \"param\": null\n  },\n  \"status\": 401\n}"
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: AI Provider HTTP 401: {\n  \"error\": {\n    \"message\": \"Incorrect API key provided: sk-test-***************5678. You can find your API key at https://platform.openai.com/account/api-keys.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"invalid_api_key\",\n    \"param\": null\n  },\n  \"status\": 401\n}"
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRX0VSG-492 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "AI Provider HTTP 401: {\n  \"error\": {\n    \"message\": \"Incorrect API key provided: sk-test-***************5678. You can find your API key at https://platform.openai.com/account/api-keys.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"invalid_api_key\",\n    \"param\": null\n  },\n  \"status\": 401\n}",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Cloud Engineer at Accenture. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Accenture technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Accenture's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRWZNA9-398",
+    "timestamp": "2026-10-28T09:31:00.535Z",
+    "targetCompany": "Accenture",
+    "role": "Cloud Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 406,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Accenture."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 45,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for GEMINI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 360,
+        "details": "LLM inference failed: {\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}"
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: {\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}"
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRWZNA9-398 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "gemini",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "{\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Cloud Engineer at Accenture. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Accenture technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Accenture's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRWZMKW-474",
+    "timestamp": "2026-10-28T09:30:59.217Z",
+    "targetCompany": "Amazon",
+    "role": "Software Development Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 2,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Amazon."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 1,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRWZMKW-474 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Software Development Engineer at Amazon. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Amazon technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Amazon's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRWZMKH-460",
+    "timestamp": "2026-10-28T09:30:59.214Z",
+    "targetCompany": "Microsoft",
+    "role": "Azure Solutions Architect",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 13,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Microsoft."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 12,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 1,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRWZMKH-460 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Azure Solutions Architect at Microsoft. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Microsoft technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Microsoft's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRWZMJS-969",
+    "timestamp": "2026-10-28T09:30:59.198Z",
+    "targetCompany": "Google",
+    "role": "Site Reliability Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 22,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Google."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 22,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 0,
+        "details": "LLM inference failed: No active LLM API key configured. Please visit AI Settings to enter a valid API key."
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "error",
+        "durationMs": 0,
+        "details": "AI inference did not produce a valid result. Fallback is disabled to prevent ungrounded outputs."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRWZMJS-969 [FAILED] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "failed",
+    "isFallback": false,
+    "errorMessage": "No active LLM API key configured. Please visit AI Settings to enter a valid API key.",
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRWXZU9-250",
+    "timestamp": "2026-10-28T09:29:43.905Z",
+    "targetCompany": "Accenture",
+    "role": "Cloud Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 816,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Accenture."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 20,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for OPENAI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 796,
+        "details": "LLM inference failed: AI Provider HTTP 401: {\n  \"error\": {\n    \"message\": \"Incorrect API key provided: sk-test-***************5678. You can find your API key at https://platform.openai.com/account/api-keys.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"invalid_api_key\",\n    \"param\": null\n  },\n  \"status\": 401\n}"
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Explicit fallback active: Synthesized rule-based assessment due to: AI Provider HTTP 401: {\n  \"error\": {\n    \"message\": \"Incorrect API key provided: sk-test-***************5678. You can find your API key at https://platform.openai.com/account/api-keys.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"invalid_api_key\",\n    \"param\": null\n  },\n  \"status\": 401\n}"
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRWXZU9-250 [FALLBACK] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "openai",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "fallback",
+    "isFallback": true,
+    "fallbackReason": "AI Provider HTTP 401: {\n  \"error\": {\n    \"message\": \"Incorrect API key provided: sk-test-***************5678. You can find your API key at https://platform.openai.com/account/api-keys.\",\n    \"type\": \"invalid_request_error\",\n    \"code\": \"invalid_api_key\",\n    \"param\": null\n  },\n  \"status\": 401\n}",
+    "output": {
+      "executive_summary": "[DETERMINISTIC FALLBACK] Baseline evaluation for Cloud Engineer at Accenture. Candidate profile indicates foundational alignment with Python, Data Structures & Algorithms, Aptitude, Communication Skills, Generative AI, Amazon Web Services. Emphasis is placed on problem-solving rigor and clean modular architecture during campus recruitment rounds.",
+      "readiness_rating": "Moderate Match",
+      "readiness_score": 75,
+      "strengths": [
+        "Grounded technical alignment in Python, Data Structures & Algorithms, Aptitude",
+        "Solid understanding of standard algorithmic patterns and object design",
+        "Demonstrated analytical ability on engineering coursework"
+      ],
+      "gap_analysis": [
+        {
+          "category": "Data Structures & Algorithms",
+          "current_state": "Standard competency in linear structures and hashing",
+          "required_benchmark": "Accenture technical round emphasizes dynamic programming, graphs, and Big-O efficiency",
+          "recommended_action": "Complete curated 25 LeetCode Medium challenges focusing on Trees and Graphs."
+        },
+        {
+          "category": "System Design & Cloud Architecture",
+          "current_state": "Basic understanding of client-server APIs and relational schemas",
+          "required_benchmark": "High-level understanding of microservices, caching layers, and database scaling",
+          "recommended_action": "Review distributed system patterns: Redis caching, message queues, and load balancing."
+        }
+      ],
+      "interview_strategy": {
+        "technical_round_focus": [
+          "Live coding with clean code discipline, boundary condition checks, and time complexity analysis",
+          "Deep architectural walkthrough of projects listed on resume"
+        ],
+        "system_design_or_coding_topics": [
+          "Relational vs Non-Relational database selection rationale",
+          "RESTful API design and authentication security best practices"
+        ],
+        "managerial_hr_talking_points": [
+          "Knowledge of Accenture's core business domains and campus hiring bar",
+          "Demonstration of team adaptability, peer mentorship, and conflict resolution"
+        ]
+      },
+      "actionable_roadmap_30_days": [
+        "Days 1-7: Intensive practice on Graph traversals (BFS/DFS) and dynamic programming patterns",
+        "Days 8-14: Comprehensive review of OS (Processes, Threads, Virtual Memory) and DBMS (ACID, Indexing)",
+        "Days 15-22: Deep-dive rehearsal of personal resume project architecture and live defense",
+        "Days 23-30: Timed mock interview simulations and behavioral STAR method preparation"
+      ]
+    },
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  },
+  {
+    "runId": "RUN-MVRWWUCS-712",
+    "timestamp": "2026-10-28T09:28:49.854Z",
+    "targetCompany": "Accenture",
+    "role": "Cloud Engineer",
+    "analysisType": "comprehensive_placement",
+    "totalDurationMs": 530,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Data Source Ingestion",
+        "status": "success",
+        "durationMs": 1,
+        "details": "Ingested 823 characters of profile and recruitment text for target company: Accenture."
+      },
+      {
+        "stage": 2,
+        "name": "Deterministic Document Parsing",
+        "status": "success",
+        "durationMs": 17,
+        "details": "Parsed document: Extracted 13 technical competencies across 11 RADIX categories.",
+        "metadata": {
+          "skill_count": 13,
+          "category_count": 11
+        }
+      },
+      {
+        "stage": 3,
+        "name": "RADIX 12 Schema Normalization",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Normalized extracted entities into authoritative RADIX category codes."
+      },
+      {
+        "stage": 4,
+        "name": "Pre-Inference Quality Check",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Input data validated. Sufficient contextual density for inference."
+      },
+      {
+        "stage": 5,
+        "name": "Context & Prompt Assembly",
+        "status": "success",
+        "durationMs": 0,
+        "details": "Synthesized placement prompt for GEMINI (gpt-4o-mini)."
+      },
+      {
+        "stage": 6,
+        "name": "LLM Inference Execution",
+        "status": "error",
+        "durationMs": 512,
+        "details": "LLM inference failed: {\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}"
+      },
+      {
+        "stage": 7,
+        "name": "Output Schema Verification",
+        "status": "error",
+        "durationMs": 0,
+        "details": "AI inference did not produce a valid result. Fallback is disabled to prevent ungrounded outputs."
+      },
+      {
+        "stage": 8,
+        "name": "Audit Persistence & History",
+        "status": "warning",
+        "durationMs": 0,
+        "details": "Execution record RUN-MVRWWUCS-712 [FAILED] committed to persistent history store."
+      }
+    ],
+    "providerUsed": "gemini",
+    "modelUsed": "gpt-4o-mini",
+    "finalStatus": "failed",
+    "isFallback": false,
+    "errorMessage": "{\"error\":{\"code\":404,\"message\":\"models/gpt-4o-mini is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.\",\"status\":\"NOT_FOUND\"}}",
+    "rawInputSnippet": "Company: Accenture plc\nType: Dream\nOverview: Accenture is a global professional services company providing strategy, consulting, digital, technology, and operations services, serving large enterprises",
+    "recordsProcessed": 13
+  }
+]

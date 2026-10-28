@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { GoogleGenAI } from "@google/genai";
 
 export type AIProviderType = "gemini" | "openai";
@@ -16,7 +18,8 @@ export interface MaskedAIConfig {
   isKeyConfigured: boolean;
   maskedKey: string;
   isEnvDefault: boolean;
-  supportedProviders: Array<{ id: AIProviderType; name: string; defaultModel: string }>;
+  storageType: "persistent_file" | "environment_variable" | "unconfigured";
+  supportedProviders: Array<{ id: AIProviderType; name: string; defaultModel: string; defaultEndpoint?: string }>;
 }
 
 export interface TestConnectionResult {
@@ -34,15 +37,80 @@ export interface StructuredGenerationOptions {
   temperature?: number;
 }
 
-// In-memory server-side state for active AI configuration
-const activeConfig: AIProviderConfig = {
-  provider: process.env.OPENAI_API_KEY ? "openai" : "gemini",
-  apiKey: process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || "",
+const DATA_DIR = path.resolve(process.cwd(), "data");
+const CONFIG_FILE = path.join(DATA_DIR, ".ai_config.json");
+
+// Ensure data directory exists
+function ensureDataDir(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch (err: any) {
+    console.warn("[AI Provider] Could not ensure data directory:", err.message);
+  }
+}
+
+// In-memory active configuration
+let activeConfig: AIProviderConfig = {
+  provider: "gemini",
+  apiKey: "",
   baseURL: "https://api.openai.com/v1",
-  model: process.env.OPENAI_API_KEY ? "gpt-4o-mini" : "gemini-3.8-flash",
+  model: "gemini-3.8-flash",
 };
 
-// Mask API key for secure UI presentation (never leak full key to browser)
+let hasLoadedFromDisk = false;
+
+// Load persisted configuration from server disk or environment variables
+export function initAIConfig(): void {
+  ensureDataDir();
+
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      const raw = fs.readFileSync(CONFIG_FILE, "utf-8");
+      const saved = JSON.parse(raw);
+      activeConfig = {
+        provider: saved.provider || "gemini",
+        apiKey: saved.apiKey || "",
+        baseURL: saved.baseURL || "https://api.openai.com/v1",
+        model: saved.model || (saved.provider === "openai" ? "gpt-4o-mini" : "gemini-3.8-flash"),
+      };
+      hasLoadedFromDisk = true;
+      console.log(`[AI Provider] Loaded persisted AI configuration for '${activeConfig.provider}' from disk.`);
+      return;
+    } catch (err: any) {
+      console.warn("[AI Provider] Failed to parse saved .ai_config.json, falling back to environment:", err.message);
+    }
+  }
+
+  // Fallback to environment variables
+  if (process.env.GEMINI_API_KEY) {
+    activeConfig.provider = "gemini";
+    activeConfig.apiKey = process.env.GEMINI_API_KEY.trim();
+    activeConfig.model = process.env.LLM_MODEL || "gemini-3.8-flash";
+  } else if (process.env.OPENAI_API_KEY) {
+    activeConfig.provider = "openai";
+    activeConfig.apiKey = process.env.OPENAI_API_KEY.trim();
+    activeConfig.model = process.env.LLM_MODEL || "gpt-4o-mini";
+  }
+}
+
+// Auto-initialize on module import
+initAIConfig();
+
+function persistConfigToDisk(): void {
+  ensureDataDir();
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(activeConfig, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600, // secure read/write owner only
+    });
+    hasLoadedFromDisk = true;
+  } catch (err: any) {
+    console.error("[AI Provider] Failed to write config to disk:", err.message);
+  }
+}
+
 export function maskKey(key: string): string {
   if (!key) return "";
   if (key.length <= 8) return "••••••••";
@@ -56,6 +124,11 @@ export function getMaskedConfig(): MaskedAIConfig {
     (activeConfig.provider === "gemini" && activeConfig.apiKey === (process.env.GEMINI_API_KEY || "")) ||
     (activeConfig.provider === "openai" && activeConfig.apiKey === (process.env.OPENAI_API_KEY || ""));
 
+  let storageType: MaskedAIConfig["storageType"] = "unconfigured";
+  if (activeConfig.apiKey) {
+    storageType = hasLoadedFromDisk ? "persistent_file" : isEnv ? "environment_variable" : "persistent_file";
+  }
+
   return {
     provider: activeConfig.provider,
     model: activeConfig.model,
@@ -63,9 +136,19 @@ export function getMaskedConfig(): MaskedAIConfig {
     isKeyConfigured: !!activeConfig.apiKey,
     maskedKey: maskKey(activeConfig.apiKey),
     isEnvDefault: isEnv && !!activeConfig.apiKey,
+    storageType,
     supportedProviders: [
-      { id: "gemini", name: "Google Gemini (Official GenAI SDK)", defaultModel: "gemini-3.8-flash" },
-      { id: "openai", name: "OpenAI / Compatible Endpoint", defaultModel: "gpt-4o-mini" },
+      {
+        id: "gemini",
+        name: "Google Gemini (Official GenAI SDK)",
+        defaultModel: "gemini-3.8-flash",
+      },
+      {
+        id: "openai",
+        name: "OpenAI / Compatible Endpoint (Groq, DeepSeek, Ollama, vLLM)",
+        defaultModel: "gpt-4o-mini",
+        defaultEndpoint: "https://api.openai.com/v1",
+      },
     ],
   };
 }
@@ -77,6 +160,7 @@ export function updateAIConfig(updates: Partial<AIProviderConfig>): MaskedAIConf
       activeConfig.model = updates.provider === "gemini" ? "gemini-3.8-flash" : "gpt-4o-mini";
     }
   }
+  // Only update apiKey if explicitly provided with non-empty content
   if (typeof updates.apiKey === "string" && updates.apiKey.trim().length > 0) {
     activeConfig.apiKey = updates.apiKey.trim();
   }
@@ -87,24 +171,70 @@ export function updateAIConfig(updates: Partial<AIProviderConfig>): MaskedAIConf
     activeConfig.model = updates.model.trim();
   }
 
+  persistConfigToDisk();
   return getMaskedConfig();
 }
 
 /**
- * Returns available model options based on provider
+ * Replaces the active API key securely
+ */
+export function replaceAIKey(newKey: string): MaskedAIConfig {
+  if (!newKey || typeof newKey !== "string" || newKey.trim().length === 0) {
+    throw new Error("New API key cannot be empty.");
+  }
+  activeConfig.apiKey = newKey.trim();
+  persistConfigToDisk();
+  return getMaskedConfig();
+}
+
+/**
+ * Removes saved credentials and returns unconfigured state
+ */
+export function removeAIConfig(): MaskedAIConfig {
+  activeConfig.apiKey = "";
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      fs.unlinkSync(CONFIG_FILE);
+    } catch {
+      // Ignored
+    }
+  }
+  hasLoadedFromDisk = false;
+  return getMaskedConfig();
+}
+
+/**
+ * Returns available model options based on provider and discovery
  */
 export async function getModelList(): Promise<{ models: string[]; provider: AIProviderType }> {
   if (activeConfig.provider === "gemini") {
-    // Official recommended Google GenAI models
-    return {
-      provider: "gemini",
-      models: [
-        "gemini-3.8-flash",
-        "gemini-4-argon",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-      ],
-    };
+    const defaultGeminiModels = [
+      "gemini-3.8-flash",
+      "gemini-4-argon",
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
+    ];
+
+    if (activeConfig.apiKey) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: activeConfig.apiKey });
+        // Attempt dynamic discovery if supported
+        const pager = await ai.models.list();
+        const discovered: string[] = [];
+        for await (const m of pager) {
+          if (m.name && (m.name.includes("gemini") || m.name.includes("flash") || m.name.includes("pro"))) {
+            discovered.push(m.name.replace(/^models\//, ""));
+          }
+        }
+        if (discovered.length > 0) {
+          return { provider: "gemini", models: Array.from(new Set([...discovered, ...defaultGeminiModels])) };
+        }
+      } catch {
+        // Fall back to catalog
+      }
+    }
+
+    return { provider: "gemini", models: defaultGeminiModels };
   }
 
   // OpenAI or OpenAI-compatible endpoint
@@ -123,15 +253,23 @@ export async function getModelList(): Promise<{ models: string[]; provider: AIPr
         if (Array.isArray(data.data) && data.data.length > 0) {
           const ids = data.data
             .map((m) => m.id)
-            .filter((id) => id.includes("gpt") || id.includes("chat") || id.includes("llama") || id.includes("deepseek") || id.includes("claude"))
-            .slice(0, 20);
+            .filter((id) =>
+              id.includes("gpt") ||
+              id.includes("chat") ||
+              id.includes("llama") ||
+              id.includes("deepseek") ||
+              id.includes("claude") ||
+              id.includes("mistral") ||
+              id.includes("qwen")
+            )
+            .slice(0, 30);
           if (ids.length > 0) {
             return { provider: "openai", models: ids };
           }
         }
       }
     } catch {
-      // Fallback to standard OpenAI model catalog
+      // Fallback
     }
   }
 
@@ -143,6 +281,8 @@ export async function getModelList(): Promise<{ models: string[]; provider: AIPr
       "o3-mini",
       "gpt-4-turbo",
       "gpt-3.5-turbo",
+      "deepseek-chat",
+      "llama-3.3-70b-versatile",
     ],
   };
 }
@@ -153,12 +293,12 @@ export async function getModelList(): Promise<{ models: string[]; provider: AIPr
 export async function testAIConnection(): Promise<TestConnectionResult> {
   if (!activeConfig.apiKey) {
     throw new Error(
-      `No API key configured for ${activeConfig.provider.toUpperCase()}. Please configure an API key in AI Settings.`
+      `No API key configured for ${activeConfig.provider.toUpperCase()}. Please enter a valid API key in AI Settings.`
     );
   }
 
   const startTime = Date.now();
-  const testPrompt = "State 'JSS Placement Intelligence System Operational' in exactly one short line.";
+  const testPrompt = "Return exactly: 'RADIX AI Gateway Operational'";
 
   if (activeConfig.provider === "gemini") {
     try {
@@ -176,11 +316,21 @@ export async function testAIConnection(): Promise<TestConnectionResult> {
         latencyMs,
         provider: "gemini",
         model: activeConfig.model,
-        message: "Successfully verified Google Gemini connection",
+        message: `Successfully verified Google Gemini connection with model '${activeConfig.model}'.`,
         sampleOutput: text.trim(),
       };
     } catch (err: any) {
-      throw new Error(`Gemini connection failed: ${err.message || String(err)}`);
+      const msg = err.message || String(err);
+      if (msg.includes("API_KEY_INVALID") || msg.includes("401") || msg.includes("Forbidden")) {
+        throw new Error(`Google Gemini rejected API Key: Invalid or unauthorized key. (${msg})`);
+      }
+      if (msg.includes("404") || msg.includes("not found")) {
+        throw new Error(`Model '${activeConfig.model}' was not found on Google Gemini. Please check model name.`);
+      }
+      if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+        throw new Error(`Gemini rate limit or quota exceeded. Please check your project billing or rate limits.`);
+      }
+      throw new Error(`Gemini connection failed: ${msg}`);
     }
   } else {
     // OpenAI Compatible
@@ -195,11 +345,11 @@ export async function testAIConnection(): Promise<TestConnectionResult> {
         body: JSON.stringify({
           model: activeConfig.model,
           messages: [
-            { role: "system", content: "You are a health check system. Reply briefly." },
+            { role: "system", content: "You are a health check probe. Reply briefly." },
             { role: "user", content: testPrompt },
           ],
           max_tokens: 30,
-          temperature: 0.2,
+          temperature: 0.1,
         }),
         signal: AbortSignal.timeout(10000),
       });
@@ -208,7 +358,16 @@ export async function testAIConnection(): Promise<TestConnectionResult> {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`OpenAI HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
+        if (response.status === 401) {
+          throw new Error(`OpenAI endpoint rejected API Key (HTTP 401 Unauthorized): ${errorBody.slice(0, 150)}`);
+        }
+        if (response.status === 404) {
+          throw new Error(`Model '${activeConfig.model}' not found on endpoint '${activeConfig.baseURL}'.`);
+        }
+        if (response.status === 429) {
+          throw new Error(`OpenAI endpoint rate limit / quota exceeded (HTTP 429).`);
+        }
+        throw new Error(`OpenAI HTTP ${response.status}: ${errorBody.slice(0, 200)}`);
       }
 
       const data = (await response.json()) as any;
@@ -219,7 +378,7 @@ export async function testAIConnection(): Promise<TestConnectionResult> {
         latencyMs,
         provider: "openai",
         model: activeConfig.model,
-        message: "Successfully verified OpenAI-compatible endpoint",
+        message: `Successfully verified OpenAI-compatible endpoint at '${activeConfig.baseURL}'.`,
         sampleOutput,
       };
     } catch (err: any) {
@@ -229,7 +388,7 @@ export async function testAIConnection(): Promise<TestConnectionResult> {
 }
 
 /**
- * Universal text generation using active provider with JSON extraction support
+ * Universal text generation using active configured provider
  */
 export async function executeAIGeneration(options: StructuredGenerationOptions): Promise<string> {
   if (!activeConfig.apiKey) {
@@ -242,7 +401,7 @@ export async function executeAIGeneration(options: StructuredGenerationOptions):
     const ai = new GoogleGenAI({ apiKey: activeConfig.apiKey });
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Gemini request timed out after 10000ms")), 10000)
+      setTimeout(() => reject(new Error("Gemini request timed out after 20000ms")), 20000)
     );
 
     const callPromise = ai.models.generateContent({
@@ -250,15 +409,14 @@ export async function executeAIGeneration(options: StructuredGenerationOptions):
       contents: options.prompt,
       config: {
         systemInstruction: options.systemInstruction,
-        temperature: options.temperature ?? 0.3,
+        temperature: options.temperature ?? 0.2,
       },
     });
 
     const response = await Promise.race([callPromise, timeoutPromise]);
-
     const text = response.text;
-    if (!text) {
-      throw new Error("Gemini returned an empty response.");
+    if (!text || text.trim().length === 0) {
+      throw new Error("Gemini model returned an empty response.");
     }
     return text;
   } else {
@@ -279,7 +437,7 @@ export async function executeAIGeneration(options: StructuredGenerationOptions):
       body: JSON.stringify({
         model: activeConfig.model,
         messages,
-        temperature: options.temperature ?? 0.3,
+        temperature: options.temperature ?? 0.2,
       }),
       signal: AbortSignal.timeout(30000),
     });
@@ -291,7 +449,7 @@ export async function executeAIGeneration(options: StructuredGenerationOptions):
 
     const data = (await response.json()) as any;
     const content = data.choices?.[0]?.message?.content;
-    if (!content) {
+    if (!content || content.trim().length === 0) {
       throw new Error("AI provider returned empty content.");
     }
     return content;

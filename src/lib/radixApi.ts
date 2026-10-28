@@ -15,7 +15,10 @@ export interface DocumentExtractResponse {
   file_name: string;
   char_count: number;
   word_count: number;
-  file_type: "pdf" | "docx" | "txt";
+  file_type: "pdf" | "docx" | "txt" | "csv" | "xlsx" | "json";
+  mime_type?: string;
+  structured_data?: any;
+  metadata?: any;
 }
 
 /**
