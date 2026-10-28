@@ -8,7 +8,6 @@ import {
 } from "../types/radix";
 import { normalizeSkill, CANONICAL_SKILLS } from "../lib/radixCatalog";
 import {
-  DEFAULT_CANDIDATE_PROFILE,
   adaptResumeResponse,
   adaptJDResponse,
 } from "../lib/radixAdapters";
@@ -148,8 +147,10 @@ describe("Role 4 - Talent Check Engine", () => {
     expect(accenture.category_benchmarks.COD.level).toBe(7);
   });
 
-  it("evaluates default candidate readiness against Accenture with 12-category breakdown", () => {
-    const result = evaluateTalentReadiness(DEFAULT_CANDIDATE_PROFILE, 1);
+  it("evaluates an explicitly loaded demo resume against Accenture with 12-category breakdown", () => {
+    // Demo fixtures are allowed in tests only; the live application does not preload this profile.
+    const demoCandidate = parseResumeText(SAMPLE_RESUMES[0].text, "demo_test_resume.pdf");
+    const result = evaluateTalentReadiness(demoCandidate, 1);
     expect(result.company_name).toBe("Accenture");
     expect(result.overall_readiness_score).toBeGreaterThan(60);
     expect(result.category_scores.length).toBe(13); // 12 + OTHER
@@ -168,7 +169,8 @@ describe("Role 4 - Talent Check Engine", () => {
 describe("Role 5 - Deterministic Skill Matching Engine", () => {
   it("matches candidate profile against Accenture Cloud JD and generates evidence citations", () => {
     const jd = parseJDText(SAMPLE_JOB_DESCRIPTIONS[0].text);
-    const match = matchCandidateToJD(DEFAULT_CANDIDATE_PROFILE, jd);
+    const demoCandidate = parseResumeText(SAMPLE_RESUMES[0].text, "demo_test_resume.pdf");
+    const match = matchCandidateToJD(demoCandidate, jd);
 
     expect(match.overall_match_score).toBeGreaterThanOrEqual(40);
     expect(match.matched_skills.length).toBeGreaterThan(0);
