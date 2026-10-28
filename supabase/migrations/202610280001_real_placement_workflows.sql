@@ -50,7 +50,7 @@ create table if not exists public.student_skills (
 
 create table if not exists public.job_postings (
   id uuid primary key default gen_random_uuid(),
-  company_id bigint references public.companies(company_id) on delete set null,
+  company_id integer references public.companies(company_id) on delete set null,
   company_name text not null default '',
   role_title text not null default '',
   source_file text,
