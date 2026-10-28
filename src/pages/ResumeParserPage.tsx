@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { parseResume, extractDocument } from "../lib/radixApi";
 import { saveStoredProfile } from "../lib/radixAdapters";
+import { saveStudentResume, type JobRecommendation } from "../lib/placementRepository";
 import { CandidateProfile, RADIX_CATEGORY_METADATA } from "../types/radix";
 import { SAMPLE_RESUMES } from "../data/radixSamples";
 
@@ -31,6 +32,9 @@ export const ResumeParserPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
+  const [sampleMode, setSampleMode] = useState(false);
+  const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
+  const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
 
   const handleParse = async () => {
     if (!inputText.trim()) {
@@ -40,19 +44,30 @@ export const ResumeParserPage: React.FC = () => {
     setIsProcessing(true);
     setUploadError(null);
     try {
-      const data = await parseResume(inputText, fileName || "uploaded_resume.txt");
-      if (data.skills.length === 0) {
-        toast.warning("Parsed resume, but no recognized RADIX skills were matched.");
-      } else {
-        toast.success(`Successfully parsed profile for ${data.name} with ${data.skills.length} skills`);
-      }
+      const data = await parseResume(inputText, fileName || "pasted_resume.txt");
       setCandidate(data);
       saveStoredProfile(data);
+      if (sampleMode) {
+        setRecommendations([]);
+        setRecommendationsLoaded(false);
+        toast.info("Demo preview only. Sample profiles are never written to Supabase or used for real recommendations.");
+        return;
+      }
+      const jobRecommendations = await saveStudentResume(data);
+      setRecommendations(jobRecommendations);
+      setRecommendationsLoaded(true);
+      if (data.skills.length === 0) {
+        toast.warning("Profile saved, but the resume contained no recognized RADIX skills.");
+      } else {
+        toast.success("Profile and " + data.skills.length + " skills saved to Supabase. Found " + jobRecommendations.length + " real job recommendations.");
+      }
     } catch (err: any) {
-      const msg = err.message || "Failed to parse resume";
+      const msg = err.message || "Failed to parse or save the resume";
       setUploadError(msg);
       toast.error(msg);
       setCandidate(null);
+      setRecommendations([]);
+      setRecommendationsLoaded(false);
     } finally {
       setIsProcessing(false);
     }
@@ -62,52 +77,47 @@ export const ResumeParserPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset current state
     setUploadError(null);
     setCandidate(null);
     setInputText("");
     setFileName(file.name);
+    setSampleMode(false);
+    setRecommendations([]);
+    setRecommendationsLoaded(false);
 
-    // Validate extension
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx", "txt", "md"].includes(ext || "")) {
-      const err = `Unsupported file format (.${ext}). Please upload a .pdf, .docx, or .txt file.`;
+    if (!["pdf", "docx", "txt"].includes(ext || "")) {
+      const err = "Unsupported file format (." + ext + "). Please upload a .pdf, .docx, or .txt file.";
       setUploadError(err);
       toast.error(err);
+      e.target.value = "";
       return;
     }
 
     setIsExtracting(true);
-    const toastId = toast.loading(`Extracting text from ${file.name}...`);
-
+    const toastId = toast.loading("Extracting text from " + file.name + "...");
     try {
       const extracted = await extractDocument(file);
       setInputText(extracted.text);
-      toast.success(`Extracted ${extracted.word_count} words from ${file.name}`, { id: toastId });
-
-      // Automatically trigger parsing after extraction
+      toast.success("Extracted " + extracted.word_count + " words from " + file.name, { id: toastId });
       setIsProcessing(true);
-      try {
-        const parsed = await parseResume(extracted.text, extracted.file_name);
-        setCandidate(parsed);
-        saveStoredProfile(parsed);
-        toast.success(`Parsed candidate profile: ${parsed.name} (${parsed.skills.length} skills)`);
-      } catch (parseErr: any) {
-        const errMsg = parseErr.message || "Extraction succeeded, but parsing failed";
-        setUploadError(errMsg);
-        toast.error(errMsg);
-      } finally {
-        setIsProcessing(false);
-      }
+      const parsed = await parseResume(extracted.text, extracted.file_name);
+      const jobRecommendations = await saveStudentResume(parsed, file);
+      setCandidate(parsed);
+      saveStoredProfile(parsed);
+      setRecommendations(jobRecommendations);
+      setRecommendationsLoaded(true);
+      toast.success("Resume stored in Supabase; saved " + parsed.skills.length + " skills and generated " + jobRecommendations.length + " real job recommendations.");
     } catch (err: any) {
-      const msg = err.message || "Failed to extract text from document";
+      const msg = err.message || "Failed to extract, parse, or save the resume";
       setUploadError(msg);
       toast.error(msg, { id: toastId });
-      setInputText("");
       setCandidate(null);
+      setRecommendations([]);
+      setRecommendationsLoaded(false);
     } finally {
       setIsExtracting(false);
-      // Clear file input value to allow re-uploading the same file if needed
+      setIsProcessing(false);
       e.target.value = "";
     }
   };
