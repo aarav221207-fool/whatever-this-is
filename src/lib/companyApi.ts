@@ -32,7 +32,7 @@ export function useCompanies() {
       requireSupabase();
       const { data, error, status } = await supabase
         .from("companies")
-        .select("company_id, name, short_name, category, incorporation_year, headquarters_address, employee_size, website_url")
+        .select("*")
         .order("name", { ascending: true });
 
       if (error) throw describeDbError("companies", error.message, status);
@@ -60,7 +60,7 @@ export function useCompanyProfile(id: number | null | undefined) {
 
       const { data: company, error, status } = await supabase
         .from("companies")
-        .select("company_id, name, short_name, category, incorporation_year, nature_of_company, headquarters_address, office_count, employee_size, website_url, linkedin_url, twitter_handle, facebook_url, instagram_url, primary_contact_email, primary_phone_number, overview_text, vision_statement, mission_statement, legal_issues, carbon_footprint")
+        .select("*")
         .eq("company_id", id)
         .maybeSingle();
       if (error) throw describeDbError("companies", error.message, status);
