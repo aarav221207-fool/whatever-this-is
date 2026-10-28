@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { parseResume, extractDocument } from "../lib/radixApi";
 import { saveStoredProfile } from "../lib/radixAdapters";
-import { saveStudentResume, type JobRecommendation } from "../lib/placementRepository";
+import { getStudentJobRecommendations, loadStudentProfile, saveStudentResume, type JobRecommendation } from "../lib/placementRepository";
 import { CandidateProfile, RADIX_CATEGORY_METADATA } from "../types/radix";
 import { SAMPLE_RESUMES } from "../data/radixSamples";
 
@@ -35,6 +35,26 @@ export const ResumeParserPage: React.FC = () => {
   const [sampleMode, setSampleMode] = useState(false);
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
+
+  // Returning students get their persisted profile and the latest database-backed recommendations.
+  useEffect(() => {
+    let active = true;
+    loadStudentProfile()
+      .then(async (savedProfile) => {
+        if (!active || !savedProfile) return;
+        setCandidate(savedProfile);
+        saveStoredProfile(savedProfile);
+        const jobs = await getStudentJobRecommendations(savedProfile);
+        if (active) {
+          setRecommendations(jobs);
+          setRecommendationsLoaded(true);
+        }
+      })
+      .catch(() => {
+        // The upload page remains usable before sign-in; authenticated uploads enforce database access.
+      });
+    return () => { active = false; };
+  }, []);
 
   const handleParse = async () => {
     if (!inputText.trim()) {
@@ -475,8 +495,8 @@ export const ResumeParserPage: React.FC = () => {
           </div>
           {recommendations.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center">
-              <h3 className="font-bold text-slate-800">No active jobs found</h3>
-              <p className="mt-1 text-sm text-slate-500">Your profile and skills are saved. Recommendations will appear automatically after placement staff publish real job descriptions.</p>
+              <h3 className="font-bold text-slate-800">No suitable saved jobs found yet</h3>
+              <p className="mt-1 text-sm text-slate-500">Your profile and skills are saved. Recommendations appear automatically when active job descriptions in the database match your skills.</p>
             </div>
           ) : (
             <div className="space-y-3">
