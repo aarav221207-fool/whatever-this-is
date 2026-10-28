@@ -95,6 +95,19 @@ function jobToDescription(job: StoredJob): JobDescriptionResponse {
   };
 }
 
+function calculateEvidenceBasedMatch(candidate: CandidateProfile, jd: JobDescriptionResponse): SkillMatchResult {
+  const result = matchCandidateToJD(candidate, jd);
+  const requirementsCount = (jd.required_skills?.length || 0) + (jd.preferred_skills?.length || 0) + (jd.skills?.length || 0);
+  if (!candidate.skills?.length || requirementsCount === 0) {
+    result.overall_match_score = 0;
+    result.verdict = "Developing Fit";
+    result.action_plan = [!candidate.skills?.length
+      ? "No extracted student skills are available to score. Upload a readable resume with skills listed."
+      : "This job description does not contain recognized skill requirements, so a reliable match score cannot be calculated."];
+  }
+  return result;
+}
+
 function rowToCandidate(row: any, skills: SkillItem[]): CandidateProfile {
   return {
     source_type: "candidate",
@@ -257,7 +270,7 @@ async function refreshMatchesForJob(job: StoredJob): Promise<void> {
   const jd = jobToDescription(job);
   const records = profiles.map((profile: any) => {
     const candidate = rowToCandidate(profile, skillsByStudent.get(profile.id) || []);
-    const match = matchCandidateToJD(candidate, jd);
+    const match = calculateEvidenceBasedMatch(candidate, jd);
     return {
       student_id: profile.id,
       job_id: job.id,
@@ -285,7 +298,7 @@ export async function getStudentJobRecommendations(profile: CandidateProfile): P
   if (!jobs?.length) return [];
 
   const recommendations = (jobs as StoredJob[])
-    .map((job) => ({ job, match: matchCandidateToJD(profile, jobToDescription(job)) }))
+    .map((job) => ({ job, match: calculateEvidenceBasedMatch(profile, jobToDescription(job)) }))
     .sort((a, b) => b.match.overall_match_score - a.match.overall_match_score);
 
   const rows = recommendations.map(({ job, match }) => ({
