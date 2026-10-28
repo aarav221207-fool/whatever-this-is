@@ -23,7 +23,8 @@ export function parseResumeText(rawText: string, fileName?: string): CandidatePr
 
   // 3. Extract a candidate name only when it appears in resume text
   let name = "";
-  for (const line of lines.slice(0, 5)) {
+  for (const candidateLine of lines.slice(0, 5)) {
+    const line = candidateLine.replace(/^(?:candidate\s+name|full\s+name|name)\s*:\s*/i, "").trim();
     if (
       line.length > 2 &&
       line.length < 40 &&
