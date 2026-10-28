@@ -199,7 +199,7 @@ export const ProfileBuilderPage: React.FC = () => {
             <span>Sign in</span>
           </button>
           <button
-            onClick={() => setShowJsonModal(true)
+            onClick={() => setShowJsonModal(true)}
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
           >
             <Save className="w-3.5 h-3.5" />
