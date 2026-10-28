@@ -24,16 +24,50 @@ import {
   saveStoredProfile,
   DEFAULT_CANDIDATE_PROFILE,
 } from "../lib/radixAdapters";
+import { loadStudentProfile, saveStudentResume } from "../lib/placementRepository";
 
 export const ProfileBuilderPage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<CandidateProfile>(() => loadStoredProfile());
   const [showJsonModal, setShowJsonModal] = useState(false);
+  const [isSavingDatabase, setIsSavingDatabase] = useState(false);
 
-  // Auto-save to localStorage
+  // Keep a local cache for snappy edits, but prefer the signed-in student's real database profile.
   useEffect(() => {
     saveStoredProfile(profile);
   }, [profile]);
+
+  useEffect(() => {
+    let active = true;
+    loadStudentProfile()
+      .then((savedProfile) => {
+        if (active && savedProfile) {
+          setProfile(savedProfile);
+          saveStoredProfile(savedProfile);
+        }
+      })
+      .catch(() => {
+        // Unsigned visitors may keep a local draft; database loading requires sign-in.
+      });
+    return () => { active = false; };
+  }, []);
+
+  const handleSaveDatabase = async () => {
+    if (!profile.name.trim() && !profile.email.trim() && profile.skills.length === 0) {
+      toast.error("Upload a resume or enter real profile details before saving.");
+      return;
+    }
+    setIsSavingDatabase(true);
+    try {
+      await saveStudentResume(profile);
+      saveStoredProfile(profile);
+      toast.success("Profile and skills saved to Supabase. Job recommendations have been refreshed.");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not save profile to Supabase.");
+    } finally {
+      setIsSavingDatabase(false);
+    }
+  };
 
   const updateField = (field: keyof CandidateProfile, value: any) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -99,7 +133,7 @@ export const ProfileBuilderPage: React.FC = () => {
   const handleResetToDefault = () => {
     setProfile(DEFAULT_CANDIDATE_PROFILE);
     saveStoredProfile(DEFAULT_CANDIDATE_PROFILE);
-    toast.info("Reset to default benchmark profile");
+    toast.info("Profile cleared. No demo candidate has been loaded.");
   };
 
   const handleDownloadJson = () => {
@@ -150,7 +184,22 @@ export const ProfileBuilderPage: React.FC = () => {
             <span>Reset Demo</span>
           </button>
           <button
-            onClick={() => setShowJsonModal(true)}
+            onClick={handleSaveDatabase}
+            disabled={isSavingDatabase}
+            className="px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSavingDatabase ? "Saving..." : "Save to Database"}</span>
+          </button>
+          <button
+            onClick={() => navigate("/auth?next=/profile-builder")}
+            className="px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Sign in</span>
+          </button>
+          <button
+            onClick={() => setShowJsonModal(true)
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
           >
             <Save className="w-3.5 h-3.5" />
