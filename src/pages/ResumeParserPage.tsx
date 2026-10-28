@@ -63,6 +63,9 @@ export const ResumeParserPage: React.FC = () => {
     }
     setIsProcessing(true);
     setUploadError(null);
+    setCandidate(null);
+    setRecommendations([]);
+    setRecommendationsLoaded(false);
     try {
       const data = await parseResume(inputText, fileName || "pasted_resume.txt");
       setCandidate(data);
@@ -85,9 +88,8 @@ export const ResumeParserPage: React.FC = () => {
       const msg = err.message || "Failed to parse or save the resume";
       setUploadError(msg);
       toast.error(msg);
-      setCandidate(null);
-      setRecommendations([]);
-      setRecommendationsLoaded(false);
+      // Keep a successfully parsed profile visible if only the database save failed.
+      // Parsing failures leave candidate null because it is cleared before parsing.
     } finally {
       setIsProcessing(false);
     }
@@ -122,9 +124,10 @@ export const ResumeParserPage: React.FC = () => {
       toast.success("Extracted " + extracted.word_count + " words from " + file.name, { id: toastId });
       setIsProcessing(true);
       const parsed = await parseResume(extracted.text, extracted.file_name);
-      const jobRecommendations = await saveStudentResume(parsed, file);
       setCandidate(parsed);
       saveStoredProfile(parsed);
+      // Persist immediately after parsing; keep the parsed profile visible if persistence fails.
+      const jobRecommendations = await saveStudentResume(parsed, file);
       setRecommendations(jobRecommendations);
       setRecommendationsLoaded(true);
       toast.success("Resume stored in Supabase; saved " + parsed.skills.length + " skills and generated " + jobRecommendations.length + " real job recommendations.");
@@ -132,9 +135,8 @@ export const ResumeParserPage: React.FC = () => {
       const msg = err.message || "Failed to extract, parse, or save the resume";
       setUploadError(msg);
       toast.error(msg, { id: toastId });
-      setCandidate(null);
-      setRecommendations([]);
-      setRecommendationsLoaded(false);
+      // Keep the parsed profile visible when storage or recommendation generation fails.
+      // The error banner explains that the database operation did not complete.
     } finally {
       setIsExtracting(false);
       setIsProcessing(false);
