@@ -243,7 +243,7 @@ export async function saveJobDescription(jd: JobDescriptionResponse, sourceText:
     source_file: fileName || jd.source_file || null,
     description,
     description_summary: jd.description_summary || "",
-    required_skills: jd.required_skills || (jd.skills || []).map((skill) => skill.skill_name),
+    required_skills: jd.required_skills?.length ? jd.required_skills : (jd.skills || []).map((skill) => skill.skill_name),
     preferred_skills: jd.preferred_skills || [],
     experience_years_required: Number.isFinite(jd.experience_years_required) ? jd.experience_years_required : null,
     location: locationMatch?.[1]?.trim() || null,
