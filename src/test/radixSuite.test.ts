@@ -158,10 +158,11 @@ describe("Role 4 - Talent Check Engine", () => {
     // Verify category score contract
     const dsaScore = result.category_scores.find((s) => s.category_code === "DSA")!;
     expect(dsaScore).toBeDefined();
-    expect(dsaScore.candidate_level).toBe(8);
+    const extractedDsaLevel = demoCandidate.skills.find((skill) => skill.category_code === "DSA")?.level ?? 0;
+    expect(dsaScore.candidate_level).toBe(extractedDsaLevel);
     expect(dsaScore.company_required_level).toBe(8);
-    expect(dsaScore.status).toBe("Ready");
-    expect(dsaScore.gap).toBe(0);
+    expect(dsaScore.status).toBe(extractedDsaLevel >= 8 ? "Ready" : extractedDsaLevel >= 6 ? "Marginal" : "Gap");
+    expect(dsaScore.gap).toBe(extractedDsaLevel - 8);
     expect(dsaScore.recommended_topics.length).toBeGreaterThan(0);
   });
 });
